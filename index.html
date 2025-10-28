@@ -21,7 +21,7 @@
       overflow: hidden;
       position: relative;
       font-family: system-ui, -apple-system, sans-serif;
-      gap: 40px;
+      gap: 60px;
       padding: 20px;
     }
 
@@ -32,13 +32,18 @@
       width: 100%;
       height: 100%;
       z-index: -1;
+      display: grid;
+      grid-template-columns: repeat(40, 1fr);
+      grid-template-rows: repeat(40, 1fr);
+      gap: 2px;
+      padding: 10px;
     }
 
     .pixel {
-      position: absolute;
       background: rgba(0, 82, 255, 0.05);
-      border-radius: 2px;
-      animation: pixelGlow 8s infinite ease-in-out;
+      border-radius: 1px;
+      aspect-ratio: 1/1;
+      animation: pixelGlow 12s infinite ease-in-out;
     }
 
     @keyframes pixelGlow {
@@ -49,9 +54,9 @@
     }
 
     .scene {
-      width: 180px;
-      height: 180px;
-      perspective: 800px;
+      width: 200px;
+      height: 200px;
+      perspective: 1000px;
     }
 
     .cube {
@@ -60,50 +65,54 @@
       position: relative;
       transform-style: preserve-3d;
       transform: rotateX(15deg) rotateY(15deg);
+      transition: transform 0.1s linear;
     }
 
     .face {
       position: absolute;
-      width: 180px;
-      height: 180px;
+      width: 200px;
+      height: 200px;
       border-radius: 12px;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 50px;
+      font-size: 60px;
       font-weight: 700;
       color: white;
       text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      box-shadow: 0 0 20px rgba(0, 82, 255, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 25px rgba(0, 82, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15);
       background: linear-gradient(135deg, rgba(0, 82, 255, 0.9) 0%, rgba(0, 112, 255, 0.9) 100%);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    .front  { transform: rotateY(0deg) translateZ(90px); }
-    .back   { transform: rotateY(180deg) translateZ(90px); }
-    .right  { transform: rotateY(90deg) translateZ(90px); }
-    .left   { transform: rotateY(-90deg) translateZ(90px); }
-    .top    { transform: rotateX(90deg) translateZ(90px); }
-    .bottom { transform: rotateX(-90deg) translateZ(90px); }
+    .front  { transform: rotateY(0deg) translateZ(100px); }
+    .back   { transform: rotateY(180deg) translateZ(100px); }
+    .right  { transform: rotateY(90deg) translateZ(100px); }
+    .left   { transform: rotateY(-90deg) translateZ(100px); }
+    .top    { transform: rotateX(90deg) translateZ(100px); }
+    .bottom { transform: rotateX(-90deg) translateZ(100px); }
 
     .roll-btn {
-      padding: 14px 35px;
-      font-size: 16px;
+      padding: 16px 40px;
+      font-size: 18px;
       font-weight: 600;
       background: linear-gradient(135deg, #0052FF 0%, #0070FF 100%);
       color: white;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(0, 82, 255, 0.4);
-      transition: all 0.3s ease;
-      margin-top: 25px;
+      box-shadow: 0 10px 25px rgba(0, 82, 255, 0.4);
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.5px;
+      margin-top: 30px;
     }
 
-    .roll-btn:hover:not(:disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 25px rgba(0, 82, 255, 0.6);
+    .roll-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 30px rgba(0, 82, 255, 0.6);
     }
 
     .roll-btn:disabled {
@@ -113,19 +122,19 @@
     }
 
     .connect-btn {
-      padding: 10px 20px;
-      font-size: 14px;
+      padding: 12px 24px;
+      font-size: 16px;
       font-weight: 600;
       background: linear-gradient(135deg, #0052FF 0%, #0070FF 100%);
       color: white;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 6px 15px rgba(0, 82, 255, 0.3);
+      box-shadow: 0 8px 20px rgba(0, 82, 255, 0.3);
       transition: all 0.3s ease;
       position: absolute;
-      top: 15px;
-      left: 15px;
+      top: 20px;
+      left: 20px;
       z-index: 1000;
     }
 
@@ -134,15 +143,15 @@
     }
 
     .claim-btn {
-      padding: 6px 12px;
-      font-size: 11px;
+      padding: 8px 16px;
+      font-size: 12px;
       font-weight: 600;
       background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
       color: black;
       border: none;
-      border-radius: 15px;
+      border-radius: 20px;
       cursor: pointer;
-      margin-top: 4px;
+      margin-top: 5px;
     }
 
     .claim-btn:disabled {
@@ -158,10 +167,10 @@
 
     .particle {
       position: absolute;
-      width: 4px;
-      height: 4px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      animation: firework 1.2s ease-out forwards;
+      animation: firework 1.5s ease-out forwards;
     }
 
     @keyframes firework {
@@ -170,29 +179,29 @@
     }
 
     .win-glow {
-      animation: winGlow 1.5s ease-in-out;
+      animation: winGlow 2s ease-in-out;
     }
 
     @keyframes winGlow {
-      0%, 100% { box-shadow: 0 0 20px rgba(0, 82, 255, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.15); }
-      50% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 0 60px rgba(0, 82, 255, 0.7), inset 0 0 40px rgba(255, 255, 255, 0.3); }
+      0%, 100% { box-shadow: 0 0 25px rgba(0, 82, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15); }
+      50% { box-shadow: 0 0 50px rgba(255, 255, 255, 0.9), 0 0 80px rgba(0, 82, 255, 0.8), inset 0 0 60px rgba(255, 255, 255, 0.4); }
     }
 
     .rewards-table {
       background: rgba(0, 82, 255, 0.1);
       backdrop-filter: blur(10px);
       border-radius: 16px;
-      padding: 20px;
+      padding: 25px;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 25px rgba(0, 82, 255, 0.2);
-      min-width: 220px;
+      box-shadow: 0 10px 30px rgba(0, 82, 255, 0.2);
+      min-width: 250px;
     }
 
     .rewards-table h3 {
       color: white;
       text-align: center;
-      margin-bottom: 15px;
-      font-size: 18px;
+      margin-bottom: 20px;
+      font-size: 20px;
       font-weight: 600;
     }
 
@@ -200,31 +209,27 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 0;
+      padding: 12px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       color: white;
     }
 
-    .reward-item:last-child {
-      border-bottom: none;
-    }
-
     .reward-symbol {
-      font-size: 20px;
-      margin-right: 12px;
+      font-size: 24px;
+      margin-right: 15px;
     }
 
     .reward-text {
       flex: 1;
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 500;
     }
 
     .reward-tokens {
       background: linear-gradient(135deg, #0052FF, #0070FF);
-      padding: 3px 10px;
-      border-radius: 15px;
-      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
       font-weight: 600;
     }
 
@@ -236,32 +241,31 @@
 
     .game-cost {
       color: white;
-      font-size: 12px;
-      margin-top: 8px;
+      font-size: 14px;
+      margin-top: 10px;
       opacity: 0.8;
     }
 
     .token-balance {
       position: absolute;
-      top: 15px;
-      right: 15px;
+      top: 20px;
+      right: 20px;
       z-index: 1000;
       background: rgba(0, 82, 255, 0.1);
       backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 12px 16px;
+      border-radius: 16px;
+      padding: 15px 20px;
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: white;
-      font-size: 12px;
-      box-shadow: 0 6px 20px rgba(0, 82, 255, 0.2);
+      font-size: 14px;
+      box-shadow: 0 8px 25px rgba(0, 82, 255, 0.2);
       text-align: center;
     }
 
     .balance {
       font-weight: 600;
-      margin-top: 3px;
+      margin-top: 5px;
       color: #FFD700;
-      font-size: 11px;
     }
 
     .transaction-status {
@@ -269,27 +273,39 @@
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 82, 255, 0.95);
+      background: rgba(0, 82, 255, 0.9);
       color: white;
-      padding: 10px 20px;
-      border-radius: 20px;
+      padding: 12px 24px;
+      border-radius: 25px;
       font-weight: 600;
       z-index: 1000;
       backdrop-filter: blur(10px);
-      box-shadow: 0 6px 20px rgba(0, 82, 255, 0.4);
+      box-shadow: 0 8px 25px rgba(0, 82, 255, 0.4);
       text-align: center;
-      max-width: 350px;
-      font-size: 14px;
+      max-width: 400px;
+    }
+
+    .debug-info {
+      position: absolute;
+      bottom: 80px;
+      left: 20px;
+      background: rgba(255, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 15px;
+      border: 1px solid rgba(255, 0, 0, 0.3);
+      color: white;
+      font-size: 12px;
+      max-width: 300px;
     }
 
     @media (max-width: 768px) {
-      body { flex-direction: column; gap: 25px; padding: 15px; }
-      .scene { width: 140px; height: 140px; }
-      .face { width: 140px; height: 140px; font-size: 40px; }
-      .front, .back, .right, .left, .top, .bottom { transform: translateZ(70px); }
-      .rewards-table { min-width: 180px; padding: 15px; }
-      .connect-btn { position: relative; top: 0; left: 0; margin-bottom: 15px; }
-      .token-balance { position: relative; top: 0; right: 0; margin-bottom: 10px; }
+      body { flex-direction: column; gap: 30px; padding: 10px; }
+      .scene { width: 150px; height: 150px; }
+      .face { width: 150px; height: 150px; font-size: 40px; }
+      .front, .back, .right, .left, .top, .bottom { transform: translateZ(75px); }
+      .rewards-table { min-width: 200px; padding: 15px; }
+      .connect-btn { position: relative; top: 0; left: 0; margin-bottom: 20px; }
     }
   </style>
 </head>
@@ -297,9 +313,10 @@
   <button class="connect-btn" id="connectBtn">Connect Wallet</button>
 
   <div class="token-balance">
-    <div>$BASE: <span id="tokenBalance">0</span></div>
-    <div class="balance">Game: <span id="gameBalance">0</span></div>
-    <button class="claim-btn" id="claimBtn" disabled>Claim</button>
+    <div>$BASE Balance: <span id="tokenBalance">0</span></div>
+    <div class="balance">Game Balance: <span id="gameBalance">0</span></div>
+    <div class="balance">Last Win: <span id="lastWin">0</span></div>
+    <button class="claim-btn" id="claimBtn" disabled>Claim Rewards</button>
   </div>
 
   <div class="rewards-table">
@@ -340,77 +357,93 @@
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
 
+  <div class="debug-info" id="debugInfo">
+    Contract Status: Checking...
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // Contract addresses
+    // Your contract addresses
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
     const GAME_CONTRACT_ADDRESS = "0xC6ead70fAB681e845f746cc2Aa696967608e3a8C";
+    
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
     // DOM Elements
     const tokenBalanceElement = document.getElementById('tokenBalance');
     const gameBalanceElement = document.getElementById('gameBalance');
+    const lastWinElement = document.getElementById('lastWin');
     const rollBtn = document.getElementById('rollBtn');
     const connectBtn = document.getElementById('connectBtn');
     const claimBtn = document.getElementById('claimBtn');
+    const debugInfo = document.getElementById('debugInfo');
 
     let provider, signer, tokenContract, gameContract, userAddress;
 
-    // Cube face mapping
+    // Cube face mapping - RANDOM RESULTS
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - Lose
+      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Top - 3 tokens
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Bottom - Lose
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Right - 1 token
+      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left - Lose
     ];
 
-    // Contract ABIs
+    // Complete ABI for both contracts
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
-      "function decimals() view returns (uint8)"
+      "function decimals() view returns (uint8)",
+      "function symbol() view returns (string)",
+      "function transfer(address to, uint256 amount) returns (bool)",
+      "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
     const gameAbi = [
       "function playGame() returns (uint256)",
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
-      "function claimRewards()"
+      "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
+      "function claimRewards()",
+      "function rewards(uint256) view returns (uint256)",
+      "function token() view returns (address)"
     ];
 
-    // Initialize game
-    function initializeGame() {
-      createPixelBackground();
+    async function initializeGame() {
+      setupGameVisuals();
       connectBtn.addEventListener('click', connectWallet);
       claimBtn.addEventListener('click', claimRewards);
       
-      // Check if wallet is already connected
       if (typeof window.ethereum !== 'undefined') {
-        window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
-          if (accounts.length > 0) {
-            initializeWallet();
-          }
-        });
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          await initializeWallet();
+        }
       }
+      
+      updateDebugInfo('Ready to connect wallet');
     }
 
-    function createPixelBackground() {
+    function setupGameVisuals() {
       const pixelBg = document.getElementById('pixelBg');
-      const pixelCount = 200;
-      
-      for (let i = 0; i < pixelCount; i++) {
+      for (let i = 0; i < 1600; i++) {
         const pixel = document.createElement('div');
         pixel.classList.add('pixel');
-        pixel.style.width = Math.random() * 20 + 10 + 'px';
-        pixel.style.height = pixel.style.width;
-        pixel.style.left = Math.random() * 100 + 'vw';
-        pixel.style.top = Math.random() * 100 + 'vh';
-        pixel.style.animationDelay = Math.random() * 10 + 's';
-        pixel.style.animationDuration = (5 + Math.random() * 5) + 's';
+        pixel.style.animationDelay = `${Math.random() * 15}s`;
+        pixel.style.animationDuration = `${10 + Math.random() * 8}s`;
         pixelBg.appendChild(pixel);
       }
+
+      const cube = document.getElementById('cube');
+      cube.style.opacity = '0';
+      cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
+      
+      setTimeout(() => {
+        cube.style.transition = 'all 1.2s ease-out';
+        cube.style.opacity = '1';
+        cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(1)';
+      }, 300);
     }
 
     async function connectWallet() {
@@ -420,12 +453,12 @@
           return;
         }
 
-        showStatus('Connecting...');
+        showStatus('Connecting wallet...');
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         await initializeWallet();
         
       } catch (error) {
-        showStatus('Connection failed');
+        showStatus('Error: ' + error.message);
       }
     }
 
@@ -445,16 +478,45 @@
       tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, tokenAbi, signer);
       gameContract = new ethers.Contract(GAME_CONTRACT_ADDRESS, gameAbi, signer);
       
+      // Test contract connections
+      await testContracts();
+      
       connectBtn.textContent = 'Connected';
       connectBtn.classList.add('connected');
       rollBtn.disabled = false;
       
       await loadBalances();
-      showStatus('Ready to play!');
       
-      // Event listeners
+      showStatus('✅ Wallet connected! Ready to play.');
+      updateDebugInfo('Contracts connected successfully');
+      
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
+    }
+
+    async function testContracts() {
+      try {
+        // Test token contract
+        const tokenSymbol = await tokenContract.symbol();
+        const tokenDecimals = await tokenContract.decimals();
+        const gameToken = await gameContract.token();
+        
+        updateDebugInfo(`Token: ${tokenSymbol}, Decimals: ${tokenDecimals}`);
+        console.log('Game token address:', gameToken);
+        
+        // Check game contract balance
+        const gameBalance = await tokenContract.balanceOf(GAME_CONTRACT_ADDRESS);
+        const gameBalanceFormatted = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals));
+        updateDebugInfo(`Game contract has ${gameBalanceFormatted} tokens`);
+        
+        if (gameBalanceFormatted < 10) {
+          showStatus('⚠️ Game contract low on tokens');
+        }
+        
+      } catch (error) {
+        console.error('Contract test error:', error);
+        updateDebugInfo('Error testing contracts');
+      }
     }
 
     async function switchToBaseSepolia() {
@@ -483,19 +545,26 @@
       try {
         const tokenDecimals = await tokenContract.decimals();
         
-        // Wallet balance
+        // Load wallet token balance
         const walletBalance = await tokenContract.balanceOf(userAddress);
-        tokenBalanceElement.textContent = parseFloat(ethers.utils.formatUnits(walletBalance, tokenDecimals)).toFixed(2);
+        const walletBalanceFormatted = parseFloat(ethers.utils.formatUnits(walletBalance, tokenDecimals));
+        tokenBalanceElement.textContent = walletBalanceFormatted.toFixed(2);
         
-        // Game balance
+        // Load game balance for user
         const gameBalance = await gameContract.playerBalance(userAddress);
-        gameBalanceElement.textContent = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals)).toFixed(2);
+        const gameBalanceFormatted = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals));
+        gameBalanceElement.textContent = gameBalanceFormatted.toFixed(2);
         
-        // Enable claim button
-        claimBtn.disabled = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals)) <= 0;
+        // Load last result
+        const lastResult = await gameContract.getLastResult(userAddress);
+        const lastResultFormatted = parseFloat(ethers.utils.formatUnits(lastResult, tokenDecimals));
+        lastWinElement.textContent = lastResultFormatted.toFixed(2);
+        
+        // Enable claim button if there are rewards
+        claimBtn.disabled = gameBalanceFormatted <= 0;
         
       } catch (error) {
-        console.log('Balance load error');
+        console.error('Balance load error:', error);
       }
     }
 
@@ -508,7 +577,7 @@
       }
     }
 
-    function handleChainChanged() {
+    function handleChainChanged(chainId) {
       window.location.reload();
     }
 
@@ -517,9 +586,11 @@
       connectBtn.classList.remove('connected');
       tokenBalanceElement.textContent = '0';
       gameBalanceElement.textContent = '0';
+      lastWinElement.textContent = '0';
       rollBtn.disabled = true;
       claimBtn.disabled = true;
       userAddress = null;
+      showStatus('Wallet disconnected');
     }
 
     async function claimRewards() {
@@ -528,90 +599,138 @@
         showStatus('Claiming rewards...');
         
         const tx = await gameContract.claimRewards({ gasLimit: 100000 });
-        await tx.wait();
+        showStatus('Transaction submitted...');
         
-        showStatus('Rewards claimed!');
+        const receipt = await tx.wait();
+        console.log('Claim successful:', receipt);
+        
+        showStatus('🎉 Rewards claimed successfully!');
         await loadBalances();
         
       } catch (error) {
-        showStatus('Claim failed');
+        console.error('Error claiming rewards:', error);
+        showStatus('Error claiming: ' + error.message);
         claimBtn.disabled = false;
       }
     }
 
-    // Game play function
     rollBtn.addEventListener('click', async () => {
       if (!gameContract) return;
 
       rollBtn.disabled = true;
-      showStatus('Rolling...');
+      showStatus('🎲 Rolling cube...');
 
       try {
-        // Send transaction
-        const tx = await gameContract.playGame({ gasLimit: 200000 });
-        showStatus('Processing...');
-        await tx.wait();
+        // STEP 1: Generate RANDOM cube result first
+        const randomFaceIndex = Math.floor(Math.random() * cubeFaces.length);
+        const selectedFace = cubeFaces[randomFaceIndex];
         
-        // Get result
+        // STEP 2: Animate cube to show the random result
+        await animateCubeToFace(selectedFace);
+        
+        // STEP 3: Wait 2 seconds so user can see the result
+        showStatus(`🎯 Cube shows: ${selectedFace.symbol} - ${selectedFace.reward > 0 ? selectedFace.reward + ' tokens!' : 'No win'}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // STEP 4: Now send the transaction to play game on-chain
+        showStatus('🔄 Playing game on-chain...');
+        const tx = await gameContract.playGame({ gasLimit: 200000 });
+        
+        showStatus('⏳ Waiting for confirmation...');
+        const receipt = await tx.wait();
+        
+        // STEP 5: Get the ACTUAL on-chain result
         const result = await gameContract.getLastResult(userAddress);
         const tokenDecimals = await tokenContract.decimals();
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
-        // Animate cube based on result
-        let faceIndex;
-        if (tokensWon === 5) faceIndex = 0; // 🏆
-        else if (tokensWon === 3) faceIndex = 2; // 💎
-        else if (tokensWon === 1) faceIndex = 4; // ⭐
-        else faceIndex = 1; // ❌
-        
-        await animateCube(cubeFaces[faceIndex]);
-        
-        // Show result message
+        // STEP 6: Show appropriate message based on actual on-chain result
         if (tokensWon > 0) {
-          if (tokensWon === 5) showStatus(`🏆 JACKPOT! +${tokensWon} BASE`);
-          else if (tokensWon === 3) showStatus(`💎 Great! +${tokensWon} BASE`);
-          else showStatus(`⭐ Nice! +${tokensWon} BASE`);
+          let rewardMessage = '';
+          let rewardEmoji = '';
+          
+          if (tokensWon >= 5) {
+            rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
+            rewardEmoji = '🏆';
+          } else if (tokensWon >= 3) {
+            rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
+            rewardEmoji = '💎';
+          } else {
+            rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
+            rewardEmoji = '⭐';
+          }
+          
+          showStatus(rewardMessage);
           createFireworks();
         } else {
-          showStatus('❌ Better luck next time!');
+          showStatus('❌ Better luck next time! No tokens won.');
         }
         
         await loadBalances();
         
       } catch (error) {
+        console.error('Game error:', error);
         if (error.code === 4001) {
-          showStatus('Transaction cancelled');
+          showStatus('❌ Transaction cancelled');
+        } else if (error.message.includes('Wait')) {
+          showStatus('⏳ ' + error.message);
         } else {
-          showStatus('Error - try again');
+          showStatus('❌ Error: ' + error.message);
         }
       } finally {
         rollBtn.disabled = false;
       }
     });
 
-    function animateCube(face) {
+    function animateCubeToFace(face) {
       return new Promise((resolve) => {
         const cube = document.getElementById('cube');
-        const duration = 1500;
+        const targetX = face.position.x;
+        const targetY = face.position.y;
+        
+        // Add some random spins before landing on target
+        const spins = 3 + Math.random() * 2; // 3-5 spins
+        const totalRotation = spins * 360;
+        
+        let currentRotation = 0;
         const startTime = Date.now();
+        const duration = 2000; // 2 seconds animation
         
         function animate() {
           const elapsed = Date.now() - startTime;
           const progress = Math.min(elapsed / duration, 1);
           
+          // Ease out function for smooth deceleration
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          
+          if (progress < 0.8) {
+            // Fast spinning phase
+            currentRotation = totalRotation * (progress / 0.8);
+          } else {
+            // Slow down and land on target
+            const slowProgress = (progress - 0.8) / 0.2;
+            const easeInOut = slowProgress < 0.5 ? 
+              2 * slowProgress * slowProgress : 
+              1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
+            
+            currentRotation = totalRotation + (targetX - totalRotation % 360) * easeInOut;
+          }
+          
+          cube.style.transform = `rotateX(${currentRotation}deg) rotateY(${currentRotation}deg)`;
+          
           if (progress < 1) {
-            const rotation = 720 * progress;
-            cube.style.transform = `rotateX(${rotation}deg) rotateY(${rotation}deg)`;
             requestAnimationFrame(animate);
           } else {
-            cube.style.transform = `rotateX(${face.position.x}deg) rotateY(${face.position.y}deg)`;
+            // Final position
+            cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
             
+            // Add win glow if it's a winning face
             if (face.reward > 0) {
               const faces = cube.getElementsByClassName('face');
               for (let f of faces) {
                 if (f.textContent === face.symbol) {
                   f.classList.add('win-glow');
-                  setTimeout(() => f.classList.remove('win-glow'), 1500);
+                  setTimeout(() => f.classList.remove('win-glow'), 2000);
                   break;
                 }
               }
@@ -628,12 +747,12 @@
       const firework = document.getElementById('firework');
       const colors = ['#0052FF', '#0070FF', '#FFFFFF', '#FFD700'];
       
-      for (let i = 0; i < 25; i++) {
+      for (let i = 0; i < 40; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle');
         
         const angle = Math.random() * Math.PI * 2;
-        const distance = 40 + Math.random() * 80;
+        const distance = 60 + Math.random() * 120;
         const tx = Math.cos(angle) * distance;
         const ty = Math.sin(angle) * distance;
         
@@ -644,7 +763,7 @@
         particle.style.setProperty('--ty', `${ty}px`);
         
         firework.appendChild(particle);
-        setTimeout(() => particle.remove(), 1200);
+        setTimeout(() => particle.remove(), 1500);
       }
     }
 
@@ -659,10 +778,14 @@
       
       setTimeout(() => {
         if (status.parentNode) status.remove();
-      }, 3000);
+      }, 5000);
     }
 
-    // Initialize when ready
+    function updateDebugInfo(message) {
+      debugInfo.textContent = `Debug: ${message}`;
+    }
+
+    // Initialize game
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeGame);
     } else {

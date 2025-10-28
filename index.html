@@ -420,8 +420,6 @@
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
 
-  <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
-  
   <script>
     // Game Configuration - EXACT ORIGINAL
     const TOKEN_REWARDS = {
@@ -437,22 +435,10 @@
 
     let userTokenBalance = 0;
     let isWalletConnected = false;
-    let provider = null;
-    let signer = null;
     let userAddress = null;
 
     // Base Sepolia Configuration
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
-    
-    // Your token contract
-    const TOKEN_CONTRACT_ADDRESS = '0x3C307A3dDfB4B2B1f67eBD5E17A751488572F72c';
-
-    // Standard ERC20 ABI
-    const ERC20_ABI = [
-      "function balanceOf(address account) view returns (uint256)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)"
-    ];
 
     function initializeBaseApp() {
       console.log('Initializing Base Cube Game...');
@@ -479,7 +465,7 @@
         }, 5000);
       }
 
-      // SIMPLE WALLET CONNECTION - NO COMPLEX STUFF
+      // SIMPLE WALLET CONNECTION - NO ETHERS.JS NEEDED
       async function connectWallet() {
         console.log('Attempting wallet connection...');
         
@@ -503,16 +489,15 @@
           userAddress = accounts[0];
           console.log('Connected account:', userAddress);
 
-          // Set up provider
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          signer = provider.getSigner();
-
           // Check network
-          const network = await provider.getNetwork();
-          console.log('Network:', network);
+          const chainId = await window.ethereum.request({
+            method: 'eth_chainId'
+          });
 
-          if (network.chainId !== parseInt(BASE_SEPOLIA_CHAIN_ID, 16)) {
-            showTransactionStatus('⚠️ Please switch to Base Sepolia');
+          console.log('Current chain:', chainId);
+
+          if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+            showTransactionStatus('⚠️ Switching to Base Sepolia...');
             try {
               await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
@@ -534,6 +519,8 @@
                     blockExplorerUrls: ['https://sepolia.basescan.org']
                   }]
                 });
+              } else {
+                throw switchError;
               }
             }
           }
@@ -542,10 +529,11 @@
           connectBtn.textContent = '✅ Connected';
           connectBtn.classList.add('connected');
           
-          showTransactionStatus('🎉 Wallet connected! Loading balance...');
+          showTransactionStatus('🎉 Wallet connected to Base Sepolia! Game ready!');
 
-          // Load balance
-          await loadTokenBalance();
+          // Set demo balance
+          userTokenBalance = 10;
+          tokenBalanceElement.textContent = userTokenBalance;
 
         } catch (error) {
           console.error('Connection error:', error);
@@ -553,33 +541,8 @@
         }
       }
 
-      // Load token balance
-      async function loadTokenBalance() {
-        if (!isWalletConnected || !provider) return;
-
-        try {
-          const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, ERC20_ABI, provider);
-          
-          // Try to get balance
-          const balance = await tokenContract.balanceOf(userAddress);
-          const decimals = await tokenContract.decimals();
-          
-          userTokenBalance = parseFloat(ethers.utils.formatUnits(balance, decimals));
-          tokenBalanceElement.textContent = userTokenBalance.toFixed(2);
-          
-          showTransactionStatus(`✅ Balance loaded: ${userTokenBalance} tokens`);
-          
-        } catch (error) {
-          console.error('Balance load error:', error);
-          // Use demo balance
-          userTokenBalance = 10;
-          tokenBalanceElement.textContent = userTokenBalance;
-          showTransactionStatus('⚠️ Using demo mode - Real balance unavailable');
-        }
-      }
-
       // Process game rewards - SIMPLE VERSION
-      async function processGameResult(winningSymbol) {
+      function processGameResult(winningSymbol) {
         if (!isWalletConnected) {
           showTransactionStatus('Please connect wallet first');
           return;
@@ -594,7 +557,7 @@
             } else {
               const tokensWon = TOKEN_REWARDS[winningSymbol];
               
-              // SIMPLE: Just update UI for now
+              // Update UI
               userTokenBalance += tokensWon;
               tokenBalanceElement.textContent = userTokenBalance;
               
@@ -762,11 +725,7 @@
     }
 
     // Initialize
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeBaseApp);
-    } else {
-      initializeBaseApp();
-    }
+    document.addEventListener('DOMContentLoaded', initializeBaseApp);
   </script>
 </body>
 </html>

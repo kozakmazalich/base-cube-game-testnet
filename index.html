@@ -381,14 +381,14 @@
 
     let provider, signer, tokenContract, gameContract, userAddress;
 
-    // Cube face mapping - RANDOM RESULTS
+    // Cube face mapping - EXACT MATCH with contract logic
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - Lose
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Top - 3 tokens
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Bottom - Lose
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Right - 1 token
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left - Lose
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 }, contractResult: 5 },      // Front - 5 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 }, contractResult: 0 },    // Back - Lose
+      { symbol: '💎', reward: 3, position: { x: 90, y: 0 }, contractResult: 3 },     // Top - 3 tokens
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 }, contractResult: 0 },    // Bottom - Lose
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 }, contractResult: 1 },     // Right - 1 token
+      { symbol: '❌', reward: 0, position: { x: 0, y: -90 }, contractResult: 0 }     // Left - Lose
     ];
 
     // Complete ABI for both contracts
@@ -621,43 +621,43 @@
       showStatus('🎲 Rolling cube...');
 
       try {
-        // STEP 1: Generate RANDOM cube result first
-        const randomFaceIndex = Math.floor(Math.random() * cubeFaces.length);
-        const selectedFace = cubeFaces[randomFaceIndex];
-        
-        // STEP 2: Animate cube to show the random result
-        await animateCubeToFace(selectedFace);
-        
-        // STEP 3: Wait 2 seconds so user can see the result
-        showStatus(`🎯 Cube shows: ${selectedFace.symbol} - ${selectedFace.reward > 0 ? selectedFace.reward + ' tokens!' : 'No win'}`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // STEP 4: Now send the transaction to play game on-chain
-        showStatus('🔄 Playing game on-chain...');
+        // STEP 1: Get the ACTUAL on-chain result FIRST
+        showStatus('🔄 Checking game result...');
         const tx = await gameContract.playGame({ gasLimit: 200000 });
         
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
-        // STEP 5: Get the ACTUAL on-chain result
+        // STEP 2: Get the ACTUAL on-chain result
         const result = await gameContract.getLastResult(userAddress);
         const tokenDecimals = await tokenContract.decimals();
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
-        // STEP 6: Show appropriate message based on actual on-chain result
+        // STEP 3: Find the cube face that matches the on-chain result
+        let selectedFace;
+        if (tokensWon === 5) {
+          selectedFace = cubeFaces.find(face => face.contractResult === 5); // 🏆
+        } else if (tokensWon === 3) {
+          selectedFace = cubeFaces.find(face => face.contractResult === 3); // 💎
+        } else if (tokensWon === 1) {
+          selectedFace = cubeFaces.find(face => face.contractResult === 1); // ⭐
+        } else {
+          selectedFace = cubeFaces.find(face => face.contractResult === 0); // ❌
+        }
+
+        // STEP 4: Animate cube to show the ACTUAL result
+        await animateCubeToFace(selectedFace);
+        
+        // STEP 5: Show appropriate message based on ACTUAL on-chain result
         if (tokensWon > 0) {
           let rewardMessage = '';
-          let rewardEmoji = '';
           
-          if (tokensWon >= 5) {
+          if (tokensWon === 5) {
             rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
-            rewardEmoji = '🏆';
-          } else if (tokensWon >= 3) {
+          } else if (tokensWon === 3) {
             rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
-            rewardEmoji = '💎';
           } else {
             rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
-            rewardEmoji = '⭐';
           }
           
           showStatus(rewardMessage);
@@ -771,7 +771,7 @@
       let status = document.querySelector('.transaction-status');
       if (!status) {
         status = document.createElement('div');
-        status.className = 'transaction-status';
+        status.className = '.transaction-status';
         document.body.appendChild(status);
       }
       status.textContent = message;

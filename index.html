@@ -1,3 +1,5 @@
+html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -386,10 +388,10 @@
     const cubeFaces = [
       { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
       { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Right - 3 tokens WIN
+      { symbol: '💎', reward: 3, position: { x: 0, y: -90 } },    // Right - 3 tokens WIN
       { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
       { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Top - 0 tokens LOSE
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Bottom - 0 tokens LOSE
+      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
     ];
 
     // Complete ABI for both contracts
@@ -664,14 +666,10 @@
         }
         
         // STEP 4: Find the matching face for the actual result
-        let selectedFace = cubeFaces.find(face => face.symbol === actualSymbol && face.reward === actualReward);
+        let matchingFaces = cubeFaces.filter(face => face.symbol === actualSymbol && face.reward === actualReward);
+        let selectedFace = matchingFaces[Math.floor(Math.random() * matchingFaces.length)];
         
-        // If no exact match, use the first matching symbol
-        if (!selectedFace) {
-          selectedFace = cubeFaces.find(face => face.symbol === actualSymbol);
-        }
-        
-        // If still no match, use a random face
+        // If no match, pick random
         if (!selectedFace) {
           selectedFace = cubeFaces[Math.floor(Math.random() * cubeFaces.length)];
         }
@@ -726,7 +724,6 @@
         const spins = 3 + Math.random() * 2; // 3-5 spins
         const totalRotation = spins * 360;
         
-        let currentRotation = 0;
         const startTime = Date.now();
         const duration = 2000; // 2 seconds animation
         
@@ -737,9 +734,12 @@
           // Ease out function for smooth deceleration
           const easeOut = 1 - Math.pow(1 - progress, 3);
           
+          let currentX, currentY;
           if (progress < 0.8) {
             // Fast spinning phase
-            currentRotation = totalRotation * (progress / 0.8);
+            const fastProgress = progress / 0.8;
+            currentX = totalRotation * fastProgress;
+            currentY = totalRotation * fastProgress;
           } else {
             // Slow down and land on target
             const slowProgress = (progress - 0.8) / 0.2;
@@ -747,10 +747,11 @@
               2 * slowProgress * slowProgress : 
               1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
             
-            currentRotation = totalRotation + (targetX - totalRotation % 360) * easeInOut;
+            currentX = totalRotation + (targetX - (totalRotation % 360)) * easeInOut;
+            currentY = totalRotation + (targetY - (totalRotation % 360)) * easeInOut;
           }
           
-          cube.style.transform = `rotateX(${currentRotation}deg) rotateY(${currentRotation}deg)`;
+          cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
           
           if (progress < 1) {
             requestAnimationFrame(animate);
@@ -828,3 +829,4 @@
   </script>
 </body>
 </html>
+

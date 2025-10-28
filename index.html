@@ -427,10 +427,21 @@
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
 
-  <!-- Ethers.js for blockchain interaction -->
-  <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js" type="application/javascript"></script>
+  <!-- Ethers.js for blockchain interaction - FIXED CDN URL -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
+    // Wait for Ethers.js to load before initializing
+    function checkEthersLoaded() {
+      if (typeof ethers === 'undefined') {
+        console.error('Ethers.js not loaded yet');
+        setTimeout(checkEthersLoaded, 100);
+        return;
+      }
+      console.log('Ethers.js loaded successfully');
+      initializeBaseApp();
+    }
+
     // Contract addresses for Base Sepolia
     const TOKEN_CONTRACT_ADDRESS = "0x3C307A3dDfB4B2B1f67eBD5E17A751488572F72c";
     const GAME_CONTRACT_ADDRESS = "0x6B7CA86362c0C3BE01B23Ef03a2c2Cb17692c0f4";
@@ -467,7 +478,7 @@
       "function symbol() view returns (string)"
     ];
 
-    // ABI for game contract (simplified) - FIXED setGameContract function
+    // ABI for game contract (simplified)
     const gameAbi = [
       "function playGame() returns (uint256)",
       "function setGameContract(address _gameContract)",
@@ -478,11 +489,11 @@
     // Initialize for Base Sepolia environment
     async function initializeBaseApp() {
       console.log('Initializing Base Cube Game on Base Sepolia...');
+      console.log('Ethers version:', ethers?.version);
       
       // Check if we're in a Base environment
       if (typeof window !== 'undefined' && window.parent !== window) {
         console.log('Running in Base.dev environment');
-        // Base.dev specific initialization can go here
       }
       
       await setupGame();
@@ -513,6 +524,12 @@
       // Connect wallet function
       async function connectWallet() {
         try {
+          // Check if Ethers.js is available
+          if (typeof ethers === 'undefined') {
+            showTransactionStatus('Error: Ethers.js library not loaded. Please refresh the page.');
+            return;
+          }
+
           if (typeof window.ethereum === 'undefined') {
             showTransactionStatus('Please install MetaMask to play!');
             return;
@@ -521,7 +538,7 @@
           showTransactionStatus('Connecting to wallet...');
           
           // Request account access
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           
           // Check if we're on Base Sepolia
           const chainId = await window.ethereum.request({ method: 'eth_chainId' });
@@ -576,9 +593,6 @@
           // Load user balance
           await loadUserBalance();
           
-          // Set game contract - FIXED IMPLEMENTATION
-          await setGameContract();
-          
           showTransactionStatus('Wallet connected successfully!');
           
           // Set up event listeners for account and chain changes
@@ -587,23 +601,7 @@
           
         } catch (error) {
           console.error('Error connecting wallet:', error);
-          showTransactionStatus('Error connecting wallet: ' + error.message);
-        }
-      }
-
-      // FIXED: Proper setGameContract implementation
-      async function setGameContract() {
-        try {
-          showTransactionStatus('Setting up game contract...');
-          
-          // Check if setGameContract function exists and call it
-          // Note: This might require contract owner permissions
-          const tx = await gameContract.setGameContract(GAME_CONTRACT_ADDRESS);
-          await tx.wait();
-          console.log('Game contract set successfully');
-        } catch (error) {
-          // This is expected if the function doesn't exist or caller is not owner
-          console.log('setGameContract not available or already set:', error.message);
+          showTransactionStatus('Error connecting wallet: ' + (error.message || 'Unknown error'));
         }
       }
 
@@ -620,13 +618,8 @@
       }
 
       function handleChainChanged(chainId) {
-        if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
-          showTransactionStatus('Please switch to Base Sepolia network');
-          rollBtn.disabled = true;
-        } else {
-          rollBtn.disabled = false;
-          loadUserBalance();
-        }
+        // Reload the page when chain changes
+        window.location.reload();
       }
 
       function disconnectWallet() {
@@ -696,7 +689,7 @@
           
         } catch (error) {
           console.error('Error processing game:', error);
-          showTransactionStatus('Error processing game: ' + error.message);
+          showTransactionStatus('Error processing game: ' + (error.message || 'Unknown error'));
         }
       }
 
@@ -888,19 +881,12 @@
       }, 300);
     }
 
-    // Initialize when DOM is loaded
+    // Start checking for Ethers.js when DOM is loaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeBaseApp);
+      document.addEventListener('DOMContentLoaded', checkEthersLoaded);
     } else {
-      initializeBaseApp();
+      checkEthersLoaded();
     }
   </script>
-  <script type="module">
-  import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
-
-  // Tell Base that your app is ready to show
-  sdk.actions.ready().catch(console.error);
-</script>
-
 </body>
 </html>

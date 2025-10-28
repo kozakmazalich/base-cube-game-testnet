@@ -299,21 +299,6 @@
       max-width: 300px;
     }
 
-    .network-error {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 0, 0, 0.9);
-      color: white;
-      padding: 20px;
-      border-radius: 16px;
-      z-index: 2000;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(255, 0, 0, 0.4);
-    }
-
     @media (max-width: 768px) {
       body { flex-direction: column; gap: 30px; padding: 10px; }
       .scene { width: 150px; height: 150px; }
@@ -379,12 +364,11 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // Contract addresses - UPDATE THESE!
-    const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
-    const GAME_CONTRACT_ADDRESS = "0x6A40F367D8FBa9bdce096D8394E96923b0418eA1"; // Your existing contract
+    // UPDATE THESE ADDRESSES AFTER DEPLOYING NEW CONTRACT
+    const TOKEN_CONTRACT_ADDRESS = "0x4099884D7F81DbC19ec48623d29bb0B12CF3ba8C";
+    const GAME_CONTRACT_ADDRESS = "0x5800aD3D4552D72b118Ba1858aB00137AF7614f8"; 
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
-    const BASE_SEPOLIA_RPC_URL = 'https://sepolia.base.org';
     
     // DOM Elements
     const tokenBalanceElement = document.getElementById('tokenBalance');
@@ -408,22 +392,23 @@
       { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // 0 tokens
     ];
 
-    // ABI for contracts
+    // SIMPLIFIED ABI for new contract
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
       "function decimals() view returns (uint8)",
       "function symbol() view returns (string)",
-      "function transfer(address to, uint256 amount) returns (bool)",
-      "function approve(address spender, uint256 amount) returns (bool)"
+      "function transfer(address to, uint256 amount) returns (bool)"
     ];
 
     const gameAbi = [
       "function playGame() returns (uint256)",
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
-      "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
       "function claimRewards()",
-      "function token() view returns (address)"
+      "function token() view returns (address)",
+      "function REWARD_1() view returns (uint256)",
+      "function REWARD_3() view returns (uint256)",
+      "function REWARD_5() view returns (uint256)"
     ];
 
     // Game state
@@ -431,8 +416,7 @@
       isRolling: false,
       lastResult: 0,
       gameBalance: 0,
-      walletBalance: 0,
-      isConnected: false
+      walletBalance: 0
     };
 
     async function initializeGame() {
@@ -440,19 +424,11 @@
       connectBtn.addEventListener('click', connectWallet);
       claimBtn.addEventListener('click', claimRewards);
       
-      // Check if MetaMask is installed
       if (typeof window.ethereum !== 'undefined') {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) {
-            await initializeWallet();
-          }
-        } catch (error) {
-          console.error('Initial connection error:', error);
-          showNetworkError('Failed to connect to wallet. Please refresh and try again.');
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          await initializeWallet();
         }
-      } else {
-        showNetworkError('MetaMask not detected. Please install MetaMask to play.');
       }
       
       updateDebugInfo('Ready to connect wallet');
@@ -487,72 +463,47 @@
         }
 
         showStatus('Connecting wallet...');
-        
-        // Clear any existing network errors
-        hideNetworkError();
-        
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         await initializeWallet();
         
       } catch (error) {
-        console.error('Wallet connection error:', error);
-        showStatus('Error connecting wallet: ' + error.message);
-        showNetworkError('Failed to connect wallet. Please try again.');
+        showStatus('Error: ' + error.message);
       }
     }
 
     async function initializeWallet() {
-      try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        
-        if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
-          await switchToBaseSepolia();
-          return;
-        }
-
-        // Use Web3Provider instead of relying on ENS
-        provider = new ethers.providers.Web3Provider(window.ethereum, {
-          name: 'base-sepolia',
-          chainId: parseInt(BASE_SEPOLIA_CHAIN_ID, 16)
-        });
-        
-        signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        
-        // Initialize contracts with explicit address formatting
-        tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, tokenAbi, signer);
-        gameContract = new ethers.Contract(GAME_CONTRACT_ADDRESS, gameAbi, signer);
-        
-        // Get token decimals with error handling
-        try {
-          tokenDecimals = await tokenContract.decimals();
-        } catch (error) {
-          console.warn('Could not get decimals, using default 18');
-          tokenDecimals = 18;
-        }
-        
-        // Test contract connections
-        await testContracts();
-        
-        connectBtn.textContent = 'Connected';
-        connectBtn.classList.add('connected');
-        rollBtn.disabled = false;
-        gameState.isConnected = true;
-        
-        await loadBalances();
-        
-        showStatus('✅ Wallet connected! Ready to play.');
-        updateDebugInfo('Contracts connected successfully');
-        
-        // Set up event listeners
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
-        
-      } catch (error) {
-        console.error('Wallet initialization error:', error);
-        showStatus('Error initializing wallet: ' + error.message);
-        showNetworkError('Failed to initialize wallet connection.');
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        await switchToBaseSepolia();
+        return;
       }
+
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+      
+      // Initialize contracts
+      tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, tokenAbi, signer);
+      gameContract = new ethers.Contract(GAME_CONTRACT_ADDRESS, gameAbi, signer);
+      
+      // Get token decimals
+      tokenDecimals = await tokenContract.decimals();
+      
+      // Test contract connections
+      await testContracts();
+      
+      connectBtn.textContent = 'Connected';
+      connectBtn.classList.add('connected');
+      rollBtn.disabled = false;
+      
+      await loadBalances();
+      
+      showStatus('✅ Wallet connected! Ready to play.');
+      updateDebugInfo('Contracts connected successfully');
+      
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
     }
 
     async function testContracts() {
@@ -561,8 +512,17 @@
         const tokenSymbol = await tokenContract.symbol();
         const gameToken = await gameContract.token();
         
+        // Test game contract rewards
+        const reward1 = await gameContract.REWARD_1();
+        const reward3 = await gameContract.REWARD_3();
+        const reward5 = await gameContract.REWARD_5();
+        
         updateDebugInfo(`Token: ${tokenSymbol}`);
-        console.log('Game token address:', gameToken);
+        console.log('Game rewards:', {
+          reward1: parseFloat(ethers.utils.formatUnits(reward1, tokenDecimals)),
+          reward3: parseFloat(ethers.utils.formatUnits(reward3, tokenDecimals)),
+          reward5: parseFloat(ethers.utils.formatUnits(reward5, tokenDecimals))
+        });
         
         // Check game contract balance
         const gameBalance = await tokenContract.balanceOf(GAME_CONTRACT_ADDRESS);
@@ -575,8 +535,8 @@
         
       } catch (error) {
         console.error('Contract test error:', error);
-        updateDebugInfo('Error testing contracts');
-        showStatus('⚠️ Contract connection issues detected');
+        updateDebugInfo('Error testing contracts - deploy new contract');
+        showStatus('❌ Contract not working - deploy new contract');
       }
     }
 
@@ -588,31 +548,21 @@
         });
       } catch (switchError) {
         if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: BASE_SEPOLIA_CHAIN_ID,
-                chainName: 'Base Sepolia',
-                rpcUrls: [BASE_SEPOLIA_RPC_URL],
-                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                blockExplorerUrls: ['https://sepolia.basescan.org'],
-              }],
-            });
-          } catch (addError) {
-            console.error('Error adding network:', addError);
-            showNetworkError('Failed to add Base Sepolia network. Please add it manually to MetaMask.');
-          }
-        } else {
-          console.error('Error switching network:', switchError);
-          showNetworkError('Failed to switch to Base Sepolia network.');
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: BASE_SEPOLIA_CHAIN_ID,
+              chainName: 'Base Sepolia',
+              rpcUrls: ['https://sepolia.base.org'],
+              nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+              blockExplorerUrls: ['https://sepolia.basescan.org'],
+            }],
+          });
         }
       }
     }
 
     async function loadBalances() {
-      if (!gameState.isConnected) return;
-      
       try {
         // Load wallet token balance
         const walletBalance = await tokenContract.balanceOf(userAddress);
@@ -637,7 +587,6 @@
         
       } catch (error) {
         console.error('Balance load error:', error);
-        showStatus('Error loading balances');
       }
     }
 
@@ -663,13 +612,10 @@
       rollBtn.disabled = true;
       claimBtn.disabled = true;
       userAddress = null;
-      gameState.isConnected = false;
       showStatus('Wallet disconnected');
     }
 
     async function claimRewards() {
-      if (!gameState.isConnected) return;
-      
       try {
         claimBtn.disabled = true;
         showStatus('Claiming rewards...');
@@ -691,7 +637,7 @@
     }
 
     rollBtn.addEventListener('click', async () => {
-      if (!gameContract || gameState.isRolling || !gameState.isConnected) return;
+      if (!gameContract || gameState.isRolling) return;
 
       gameState.isRolling = true;
       rollBtn.disabled = true;
@@ -752,6 +698,10 @@
           showStatus('❌ Transaction cancelled');
         } else if (error.message.includes('Wait')) {
           showStatus('⏳ ' + error.message);
+        } else if (error.message.includes('Insufficient contract balance')) {
+          showStatus('❌ Game contract out of tokens');
+        } else if (error.message.includes('Cooldown')) {
+          showStatus('⏳ Please wait before playing again');
         } else {
           showStatus('❌ Error: ' + error.message);
         }
@@ -860,33 +810,9 @@
       }, 5000);
     }
 
-    function showNetworkError(message) {
-      let error = document.querySelector('.network-error');
-      if (!error) {
-        error = document.createElement('div');
-        error.className = 'network-error';
-        document.body.appendChild(error);
-      }
-      error.innerHTML = `
-        <h3>Network Error</h3>
-        <p>${message}</p>
-        <button onclick="hideNetworkError()" style="margin-top: 10px; padding: 8px 16px; background: white; color: red; border: none; border-radius: 8px; cursor: pointer;">OK</button>
-      `;
-    }
-
-    function hideNetworkError() {
-      const error = document.querySelector('.network-error');
-      if (error) {
-        error.remove();
-      }
-    }
-
     function updateDebugInfo(message) {
       debugInfo.textContent = `Debug: ${message}`;
     }
-
-    // Make functions globally available for error handling
-    window.hideNetworkError = hideNetworkError;
 
     // Initialize game
     if (document.readyState === 'loading') {

@@ -25,6 +25,7 @@
       padding: 20px;
     }
 
+    /* Original pixel grid background */
     .pixel-bg {
       position: absolute;
       top: 0;
@@ -47,10 +48,22 @@
     }
 
     @keyframes pixelGlow {
-      0%, 85% { background: rgba(0, 82, 255, 0.05); }
-      90% { background: rgba(0, 82, 255, 0.3); }
-      95% { background: rgba(255, 255, 255, 0.6); }
-      100% { background: rgba(0, 82, 255, 0.05); }
+      0%, 85% {
+        background: rgba(0, 82, 255, 0.05);
+        box-shadow: 0 0 1px rgba(0, 82, 255, 0);
+      }
+      90% {
+        background: rgba(0, 82, 255, 0.3);
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+      }
+      95% {
+        background: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 0 8px rgba(255, 255, 255, 1);
+      }
+      100% {
+        background: rgba(0, 82, 255, 0.05);
+        box-shadow: 0 0 1px rgba(0, 82, 255, 0);
+      }
     }
 
     .scene {
@@ -65,7 +78,6 @@
       position: relative;
       transform-style: preserve-3d;
       transform: rotateX(15deg) rotateY(15deg);
-      transition: transform 0.1s linear;
     }
 
     .face {
@@ -80,7 +92,9 @@
       font-weight: 700;
       color: white;
       text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      box-shadow: 0 0 25px rgba(0, 82, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15);
+      box-shadow: 
+        0 0 25px rgba(0, 82, 255, 0.6),
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
       background: linear-gradient(135deg, rgba(0, 82, 255, 0.9) 0%, rgba(0, 112, 255, 0.9) 100%);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -113,6 +127,7 @@
     .roll-btn:hover {
       transform: translateY(-4px);
       box-shadow: 0 15px 30px rgba(0, 82, 255, 0.6);
+      background: linear-gradient(135deg, #0070FF 0%, #0088FF 100%);
     }
 
     .roll-btn:disabled {
@@ -138,8 +153,14 @@
       z-index: 1000;
     }
 
+    .connect-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(0, 82, 255, 0.5);
+    }
+
     .connect-btn.connected {
       background: linear-gradient(135deg, #00C851 0%, #00E676 100%);
+      box-shadow: 0 8px 20px rgba(0, 200, 81, 0.3);
     }
 
     .claim-btn {
@@ -174,8 +195,14 @@
     }
 
     @keyframes firework {
-      0% { transform: translate(0, 0) scale(1); opacity: 1; }
-      100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+      }
     }
 
     .win-glow {
@@ -183,8 +210,17 @@
     }
 
     @keyframes winGlow {
-      0%, 100% { box-shadow: 0 0 25px rgba(0, 82, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15); }
-      50% { box-shadow: 0 0 50px rgba(255, 255, 255, 0.9), 0 0 80px rgba(0, 82, 255, 0.8), inset 0 0 60px rgba(255, 255, 255, 0.4); }
+      0%, 100% {
+        box-shadow: 
+          0 0 25px rgba(0, 82, 255, 0.6),
+          inset 0 0 40px rgba(255, 255, 255, 0.15);
+      }
+      50% {
+        box-shadow: 
+          0 0 50px rgba(255, 255, 255, 0.9),
+          0 0 80px rgba(0, 82, 255, 0.8),
+          inset 0 0 60px rgba(255, 255, 255, 0.4);
+      }
     }
 
     .rewards-table {
@@ -212,6 +248,10 @@
       padding: 12px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       color: white;
+    }
+
+    .reward-item:last-child {
+      border-bottom: none;
     }
 
     .reward-symbol {
@@ -285,27 +325,42 @@
       max-width: 400px;
     }
 
-    .debug-info {
-      position: absolute;
-      bottom: 80px;
-      left: 20px;
-      background: rgba(255, 0, 0, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 15px;
-      border: 1px solid rgba(255, 0, 0, 0.3);
-      color: white;
-      font-size: 12px;
-      max-width: 300px;
-    }
-
     @media (max-width: 768px) {
-      body { flex-direction: column; gap: 30px; padding: 10px; }
-      .scene { width: 150px; height: 150px; }
-      .face { width: 150px; height: 150px; font-size: 40px; }
-      .front, .back, .right, .left, .top, .bottom { transform: translateZ(75px); }
-      .rewards-table { min-width: 200px; padding: 15px; }
-      .connect-btn { position: relative; top: 0; left: 0; margin-bottom: 20px; }
+      body {
+        flex-direction: column;
+        gap: 30px;
+        padding: 10px;
+      }
+      
+      .scene {
+        width: 150px;
+        height: 150px;
+      }
+      
+      .face {
+        width: 150px;
+        height: 150px;
+        font-size: 40px;
+      }
+      
+      .front  { transform: rotateY(0deg) translateZ(75px); }
+      .back   { transform: rotateY(180deg) translateZ(75px); }
+      .right  { transform: rotateY(90deg) translateZ(75px); }
+      .left   { transform: rotateY(-90deg) translateZ(75px); }
+      .top    { transform: rotateX(90deg) translateZ(75px); }
+      .bottom { transform: rotateX(-90deg) translateZ(75px); }
+      
+      .rewards-table {
+        min-width: 200px;
+        padding: 15px;
+      }
+      
+      .connect-btn {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin-bottom: 20px;
+      }
     }
   </style>
 </head>
@@ -315,7 +370,6 @@
   <div class="token-balance">
     <div>$BASE Balance: <span id="tokenBalance">0</span></div>
     <div class="balance">Game Balance: <span id="gameBalance">0</span></div>
-    <div class="balance">Last Win: <span id="lastWin">0</span></div>
     <button class="claim-btn" id="claimBtn" disabled>Claim Rewards</button>
   </div>
 
@@ -357,84 +411,71 @@
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
 
-  <div class="debug-info" id="debugInfo">
-    Contract Status: Checking...
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // Your contract addresses
+    // Contract addresses
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
     const GAME_CONTRACT_ADDRESS = "0xC6ead70fAB681e845f746cc2Aa696967608e3a8C";
-    
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
     // DOM Elements
     const tokenBalanceElement = document.getElementById('tokenBalance');
     const gameBalanceElement = document.getElementById('gameBalance');
-    const lastWinElement = document.getElementById('lastWin');
     const rollBtn = document.getElementById('rollBtn');
     const connectBtn = document.getElementById('connectBtn');
     const claimBtn = document.getElementById('claimBtn');
-    const debugInfo = document.getElementById('debugInfo');
 
     let provider, signer, tokenContract, gameContract, userAddress;
 
-    // Cube face mapping - RANDOM RESULTS
-    const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - Lose
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Top - 3 tokens
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Bottom - Lose
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Right - 1 token
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left - Lose
-    ];
-
-    // Complete ABI for both contracts
+    // Contract ABIs
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)",
-      "function transfer(address to, uint256 amount) returns (bool)",
-      "function approve(address spender, uint256 amount) returns (bool)"
+      "function decimals() view returns (uint8)"
     ];
 
     const gameAbi = [
       "function playGame() returns (uint256)",
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
-      "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
-      "function claimRewards()",
-      "function rewards(uint256) view returns (uint256)",
-      "function token() view returns (address)"
+      "function claimRewards()"
     ];
 
-    async function initializeGame() {
+    // Initialize game
+    function initializeGame() {
       setupGameVisuals();
       connectBtn.addEventListener('click', connectWallet);
       claimBtn.addEventListener('click', claimRewards);
       
+      // Check if wallet is already connected
       if (typeof window.ethereum !== 'undefined') {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          await initializeWallet();
-        }
+        window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+          if (accounts.length > 0) {
+            initializeWallet();
+          }
+        });
       }
-      
-      updateDebugInfo('Ready to connect wallet');
     }
 
     function setupGameVisuals() {
+      // Original pixel grid background
       const pixelBg = document.getElementById('pixelBg');
-      for (let i = 0; i < 1600; i++) {
+      const pixelCount = 1600;
+      
+      for (let i = 0; i < pixelCount; i++) {
         const pixel = document.createElement('div');
         pixel.classList.add('pixel');
-        pixel.style.animationDelay = `${Math.random() * 15}s`;
-        pixel.style.animationDuration = `${10 + Math.random() * 8}s`;
+        
+        const animationDelay = Math.random() * 15;
+        const animationDuration = 10 + Math.random() * 8;
+        
+        pixel.style.animationDelay = `${animationDelay}s`;
+        pixel.style.animationDuration = `${animationDuration}s`;
+        
         pixelBg.appendChild(pixel);
       }
 
+      // Smooth cube appearance
       const cube = document.getElementById('cube');
       cube.style.opacity = '0';
       cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
@@ -458,7 +499,7 @@
         await initializeWallet();
         
       } catch (error) {
-        showStatus('Error: ' + error.message);
+        showStatus('Error connecting wallet');
       }
     }
 
@@ -478,45 +519,15 @@
       tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, tokenAbi, signer);
       gameContract = new ethers.Contract(GAME_CONTRACT_ADDRESS, gameAbi, signer);
       
-      // Test contract connections
-      await testContracts();
-      
       connectBtn.textContent = 'Connected';
       connectBtn.classList.add('connected');
       rollBtn.disabled = false;
       
       await loadBalances();
-      
-      showStatus('✅ Wallet connected! Ready to play.');
-      updateDebugInfo('Contracts connected successfully');
+      showStatus('Wallet connected! Ready to play.');
       
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
-    }
-
-    async function testContracts() {
-      try {
-        // Test token contract
-        const tokenSymbol = await tokenContract.symbol();
-        const tokenDecimals = await tokenContract.decimals();
-        const gameToken = await gameContract.token();
-        
-        updateDebugInfo(`Token: ${tokenSymbol}, Decimals: ${tokenDecimals}`);
-        console.log('Game token address:', gameToken);
-        
-        // Check game contract balance
-        const gameBalance = await tokenContract.balanceOf(GAME_CONTRACT_ADDRESS);
-        const gameBalanceFormatted = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals));
-        updateDebugInfo(`Game contract has ${gameBalanceFormatted} tokens`);
-        
-        if (gameBalanceFormatted < 10) {
-          showStatus('⚠️ Game contract low on tokens');
-        }
-        
-      } catch (error) {
-        console.error('Contract test error:', error);
-        updateDebugInfo('Error testing contracts');
-      }
     }
 
     async function switchToBaseSepolia() {
@@ -545,26 +556,21 @@
       try {
         const tokenDecimals = await tokenContract.decimals();
         
-        // Load wallet token balance
+        // Wallet balance
         const walletBalance = await tokenContract.balanceOf(userAddress);
         const walletBalanceFormatted = parseFloat(ethers.utils.formatUnits(walletBalance, tokenDecimals));
         tokenBalanceElement.textContent = walletBalanceFormatted.toFixed(2);
         
-        // Load game balance for user
+        // Game balance
         const gameBalance = await gameContract.playerBalance(userAddress);
         const gameBalanceFormatted = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals));
         gameBalanceElement.textContent = gameBalanceFormatted.toFixed(2);
         
-        // Load last result
-        const lastResult = await gameContract.getLastResult(userAddress);
-        const lastResultFormatted = parseFloat(ethers.utils.formatUnits(lastResult, tokenDecimals));
-        lastWinElement.textContent = lastResultFormatted.toFixed(2);
-        
-        // Enable claim button if there are rewards
+        // Enable claim button
         claimBtn.disabled = gameBalanceFormatted <= 0;
         
       } catch (error) {
-        console.error('Balance load error:', error);
+        console.log('Balance load error');
       }
     }
 
@@ -577,7 +583,7 @@
       }
     }
 
-    function handleChainChanged(chainId) {
+    function handleChainChanged() {
       window.location.reload();
     }
 
@@ -586,7 +592,6 @@
       connectBtn.classList.remove('connected');
       tokenBalanceElement.textContent = '0';
       gameBalanceElement.textContent = '0';
-      lastWinElement.textContent = '0';
       rollBtn.disabled = true;
       claimBtn.disabled = true;
       userAddress = null;
@@ -600,20 +605,18 @@
         
         const tx = await gameContract.claimRewards({ gasLimit: 100000 });
         showStatus('Transaction submitted...');
-        
-        const receipt = await tx.wait();
-        console.log('Claim successful:', receipt);
+        await tx.wait();
         
         showStatus('🎉 Rewards claimed successfully!');
         await loadBalances();
         
       } catch (error) {
-        console.error('Error claiming rewards:', error);
-        showStatus('Error claiming: ' + error.message);
+        showStatus('Error claiming rewards');
         claimBtn.disabled = false;
       }
     }
 
+    // Game play function - SIMPLE AND CLEAN
     rollBtn.addEventListener('click', async () => {
       if (!gameContract) return;
 
@@ -621,127 +624,42 @@
       showStatus('🎲 Rolling cube...');
 
       try {
-        // STEP 1: Generate RANDOM cube result first
-        const randomFaceIndex = Math.floor(Math.random() * cubeFaces.length);
-        const selectedFace = cubeFaces[randomFaceIndex];
-        
-        // STEP 2: Animate cube to show the random result
-        await animateCubeToFace(selectedFace);
-        
-        // STEP 3: Wait 2 seconds so user can see the result
-        showStatus(`🎯 Cube shows: ${selectedFace.symbol} - ${selectedFace.reward > 0 ? selectedFace.reward + ' tokens!' : 'No win'}`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // STEP 4: Now send the transaction to play game on-chain
-        showStatus('🔄 Playing game on-chain...');
+        // Send transaction
         const tx = await gameContract.playGame({ gasLimit: 200000 });
-        
         showStatus('⏳ Waiting for confirmation...');
-        const receipt = await tx.wait();
+        await tx.wait();
         
-        // STEP 5: Get the ACTUAL on-chain result
+        // Get result
         const result = await gameContract.getLastResult(userAddress);
         const tokenDecimals = await tokenContract.decimals();
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
-        // STEP 6: Show appropriate message based on actual on-chain result
+        // Show result with proper message
         if (tokensWon > 0) {
-          let rewardMessage = '';
-          let rewardEmoji = '';
-          
-          if (tokensWon >= 5) {
-            rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
-            rewardEmoji = '🏆';
-          } else if (tokensWon >= 3) {
-            rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
-            rewardEmoji = '💎';
+          if (tokensWon === 5) {
+            showStatus(`🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`);
+          } else if (tokensWon === 3) {
+            showStatus(`💎 Great! You won ${tokensWon} $BASE tokens!`);
           } else {
-            rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
-            rewardEmoji = '⭐';
+            showStatus(`⭐ Nice! You won ${tokensWon} $BASE token!`);
           }
-          
-          showStatus(rewardMessage);
           createFireworks();
         } else {
-          showStatus('❌ Better luck next time! No tokens won.');
+          showStatus('❌ Better luck next time!');
         }
         
         await loadBalances();
         
       } catch (error) {
-        console.error('Game error:', error);
         if (error.code === 4001) {
           showStatus('❌ Transaction cancelled');
-        } else if (error.message.includes('Wait')) {
-          showStatus('⏳ ' + error.message);
         } else {
-          showStatus('❌ Error: ' + error.message);
+          showStatus('❌ Error - please try again');
         }
       } finally {
         rollBtn.disabled = false;
       }
     });
-
-    function animateCubeToFace(face) {
-      return new Promise((resolve) => {
-        const cube = document.getElementById('cube');
-        const targetX = face.position.x;
-        const targetY = face.position.y;
-        
-        // Add some random spins before landing on target
-        const spins = 3 + Math.random() * 2; // 3-5 spins
-        const totalRotation = spins * 360;
-        
-        let currentRotation = 0;
-        const startTime = Date.now();
-        const duration = 2000; // 2 seconds animation
-        
-        function animate() {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          
-          // Ease out function for smooth deceleration
-          const easeOut = 1 - Math.pow(1 - progress, 3);
-          
-          if (progress < 0.8) {
-            // Fast spinning phase
-            currentRotation = totalRotation * (progress / 0.8);
-          } else {
-            // Slow down and land on target
-            const slowProgress = (progress - 0.8) / 0.2;
-            const easeInOut = slowProgress < 0.5 ? 
-              2 * slowProgress * slowProgress : 
-              1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
-            
-            currentRotation = totalRotation + (targetX - totalRotation % 360) * easeInOut;
-          }
-          
-          cube.style.transform = `rotateX(${currentRotation}deg) rotateY(${currentRotation}deg)`;
-          
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            // Final position
-            cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
-            
-            // Add win glow if it's a winning face
-            if (face.reward > 0) {
-              const faces = cube.getElementsByClassName('face');
-              for (let f of faces) {
-                if (f.textContent === face.symbol) {
-                  f.classList.add('win-glow');
-                  setTimeout(() => f.classList.remove('win-glow'), 2000);
-                  break;
-                }
-              }
-            }
-            
-            resolve();
-          }
-        }
-        animate();
-      });
-    }
 
     function createFireworks() {
       const firework = document.getElementById('firework');
@@ -755,34 +673,40 @@
         const distance = 60 + Math.random() * 120;
         const tx = Math.cos(angle) * distance;
         const ty = Math.sin(angle) * distance;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 3 + Math.random() * 4;
+        const duration = 1 + Math.random() * 0.5;
         
         particle.style.left = '50%';
         particle.style.top = '50%';
-        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.background = color;
         particle.style.setProperty('--tx', `${tx}px`);
         particle.style.setProperty('--ty', `${ty}px`);
+        particle.style.animationDuration = `${duration}s`;
         
         firework.appendChild(particle);
-        setTimeout(() => particle.remove(), 1500);
+        setTimeout(() => particle.remove(), duration * 1000);
       }
     }
 
     function showStatus(message) {
-      let status = document.querySelector('.transaction-status');
-      if (!status) {
-        status = document.createElement('div');
-        status.className = 'transaction-status';
-        document.body.appendChild(status);
+      const existingStatus = document.querySelector('.transaction-status');
+      if (existingStatus) {
+        existingStatus.remove();
       }
+      
+      const status = document.createElement('div');
+      status.className = 'transaction-status';
       status.textContent = message;
+      document.body.appendChild(status);
       
       setTimeout(() => {
-        if (status.parentNode) status.remove();
-      }, 5000);
-    }
-
-    function updateDebugInfo(message) {
-      debugInfo.textContent = `Debug: ${message}`;
+        if (status.parentNode) {
+          status.remove();
+        }
+      }, 4000);
     }
 
     // Initialize game

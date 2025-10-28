@@ -1,5 +1,3 @@
-html
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -366,9 +364,9 @@ html
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // Contract addresses
+    // NEW FIXED CONTRACT ADDRESS - DEPLOY THIS FIRST!
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
-    const GAME_CONTRACT_ADDRESS = "0xC6ead70fAB681e845f746cc2Aa696967608e3a8C";
+    const GAME_CONTRACT_ADDRESS = "0x..."; // DEPLOY THE NEW CONTRACT AND PUT ADDRESS HERE
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -384,17 +382,17 @@ html
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
 
-    // Cube face mapping - EXACTLY AS YOU SPECIFIED
+    // Cube face mapping - EXACT MATCH WITH CONTRACT
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
-      { symbol: '💎', reward: 3, position: { x: 0, y: -90 } },    // Right - 3 tokens WIN
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Top - 0 tokens LOSE
-      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Face 0: 5 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Face 1: 0 tokens
+      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Face 2: 3 tokens
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Face 3: 1 token
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Face 4: 0 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Face 5: 0 tokens
     ];
 
-    // Complete ABI for both contracts
+    // ABI for the NEW FIXED contract
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
       "function decimals() view returns (uint8)",
@@ -409,7 +407,9 @@ html
       "function playerBalance(address) view returns (uint256)",
       "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
       "function claimRewards()",
-      "function rewards(uint256) view returns (uint256)",
+      "function REWARD_1() view returns (uint256)",
+      "function REWARD_3() view returns (uint256)",
+      "function REWARD_5() view returns (uint256)",
       "function token() view returns (address)"
     ];
 
@@ -514,8 +514,17 @@ html
         const tokenSymbol = await tokenContract.symbol();
         const gameToken = await gameContract.token();
         
-        updateDebugInfo(`Token: ${tokenSymbol}`);
-        console.log('Game token address:', gameToken);
+        // Test game contract rewards
+        const reward1 = await gameContract.REWARD_1();
+        const reward3 = await gameContract.REWARD_3();
+        const reward5 = await gameContract.REWARD_5();
+        
+        updateDebugInfo(`Token: ${tokenSymbol}, Rewards: 1/3/5`);
+        console.log('Game rewards:', {
+          reward1: parseFloat(ethers.utils.formatUnits(reward1, tokenDecimals)),
+          reward3: parseFloat(ethers.utils.formatUnits(reward3, tokenDecimals)),
+          reward5: parseFloat(ethers.utils.formatUnits(reward5, tokenDecimals))
+        });
         
         // Check game contract balance
         const gameBalance = await tokenContract.balanceOf(GAME_CONTRACT_ADDRESS);
@@ -528,7 +537,7 @@ html
         
       } catch (error) {
         console.error('Contract test error:', error);
-        updateDebugInfo('Error testing contracts');
+        updateDebugInfo('Error testing contracts - deploy new contract');
       }
     }
 
@@ -636,48 +645,35 @@ html
       showStatus('🎲 Rolling cube...');
 
       try {
-        // STEP 1: First play the game on-chain to get the REAL result
+        // STEP 1: Play game on-chain first
         showStatus('🔄 Playing game on-chain...');
         const tx = await gameContract.playGame({ gasLimit: 200000 });
         
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
-        // STEP 2: Get the ACTUAL on-chain result
+        // STEP 2: Get ACTUAL result from contract
         const result = await gameContract.getLastResult(userAddress);
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
-        // STEP 3: Show what the contract ACTUALLY gave
-        let actualSymbol = '❌';
-        let actualReward = 0;
-        
+        // STEP 3: Map contract result to cube face
+        let selectedFace;
         if (tokensWon === 5) {
-          actualSymbol = '🏆';
-          actualReward = 5;
+          selectedFace = cubeFaces[0]; // 🏆
         } else if (tokensWon === 3) {
-          actualSymbol = '💎';
-          actualReward = 3;
+          selectedFace = cubeFaces[2]; // 💎
         } else if (tokensWon === 1) {
-          actualSymbol = '⭐';
-          actualReward = 1;
+          selectedFace = cubeFaces[3]; // ⭐
         } else {
-          actualSymbol = '❌';
-          actualReward = 0;
+          // Random losing face (1, 4, or 5)
+          const losingFaces = [cubeFaces[1], cubeFaces[4], cubeFaces[5]];
+          selectedFace = losingFaces[Math.floor(Math.random() * losingFaces.length)];
         }
         
-        // STEP 4: Find the matching face for the actual result
-        let matchingFaces = cubeFaces.filter(face => face.symbol === actualSymbol && face.reward === actualReward);
-        let selectedFace = matchingFaces[Math.floor(Math.random() * matchingFaces.length)];
-        
-        // If no match, pick random
-        if (!selectedFace) {
-          selectedFace = cubeFaces[Math.floor(Math.random() * cubeFaces.length)];
-        }
-        
-        // STEP 5: Animate cube to show what was ACTUALLY won
+        // STEP 4: Animate to show ACTUAL result
         await animateCubeToFace(selectedFace);
         
-        // STEP 6: Show EXACT result message
+        // STEP 5: Show EXACT result
         if (tokensWon > 0) {
           let rewardMessage = '';
           
@@ -687,8 +683,6 @@ html
             rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
           } else if (tokensWon === 1) {
             rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
-          } else {
-            rewardMessage = `🎉 You won ${tokensWon} $BASE tokens!`;
           }
           
           showStatus(rewardMessage);
@@ -724,6 +718,7 @@ html
         const spins = 3 + Math.random() * 2; // 3-5 spins
         const totalRotation = spins * 360;
         
+        let currentRotation = 0;
         const startTime = Date.now();
         const duration = 2000; // 2 seconds animation
         
@@ -734,12 +729,9 @@ html
           // Ease out function for smooth deceleration
           const easeOut = 1 - Math.pow(1 - progress, 3);
           
-          let currentX, currentY;
           if (progress < 0.8) {
             // Fast spinning phase
-            const fastProgress = progress / 0.8;
-            currentX = totalRotation * fastProgress;
-            currentY = totalRotation * fastProgress;
+            currentRotation = totalRotation * (progress / 0.8);
           } else {
             // Slow down and land on target
             const slowProgress = (progress - 0.8) / 0.2;
@@ -747,11 +739,10 @@ html
               2 * slowProgress * slowProgress : 
               1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
             
-            currentX = totalRotation + (targetX - (totalRotation % 360)) * easeInOut;
-            currentY = totalRotation + (targetY - (totalRotation % 360)) * easeInOut;
+            currentRotation = totalRotation + (targetX - totalRotation % 360) * easeInOut;
           }
           
-          cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
+          cube.style.transform = `rotateX(${currentRotation}deg) rotateY(${currentRotation}deg)`;
           
           if (progress < 1) {
             requestAnimationFrame(animate);
@@ -829,4 +820,3 @@ html
   </script>
 </body>
 </html>
-

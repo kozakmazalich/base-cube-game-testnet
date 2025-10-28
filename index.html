@@ -65,6 +65,7 @@
       position: relative;
       transform-style: preserve-3d;
       transform: rotateX(15deg) rotateY(15deg);
+      transition: transform 0.1s linear;
     }
 
     .face {
@@ -321,12 +322,12 @@
   <div class="rewards-table">
     <h3>Rewards</h3>
     <div class="reward-item">
-      <span class="reward-symbol">💎</span>
+      <span class="reward-symbol">⭐</span>
       <span class="reward-text">1 base token</span>
       <span class="reward-tokens">+1</span>
     </div>
     <div class="reward-item">
-      <span class="reward-symbol">⭐</span>
+      <span class="reward-symbol">💎</span>
       <span class="reward-text">3 base tokens</span>
       <span class="reward-tokens">+3</span>
     </div>
@@ -373,13 +374,22 @@
     const tokenBalanceElement = document.getElementById('tokenBalance');
     const gameBalanceElement = document.getElementById('gameBalance');
     const lastWinElement = document.getElementById('lastWin');
-    const walletAddressElement = document.getElementById('walletAddress');
     const rollBtn = document.getElementById('rollBtn');
     const connectBtn = document.getElementById('connectBtn');
     const claimBtn = document.getElementById('claimBtn');
     const debugInfo = document.getElementById('debugInfo');
 
     let provider, signer, tokenContract, gameContract, userAddress;
+
+    // Cube face mapping - RANDOM RESULTS
+    const cubeFaces = [
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - Lose
+      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Top - 3 tokens
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Bottom - Lose
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Right - 1 token
+      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left - Lose
+    ];
 
     // Complete ABI for both contracts
     const tokenAbi = [
@@ -611,24 +621,49 @@
       showStatus('🎲 Rolling cube...');
 
       try {
-        await animateCube();
+        // STEP 1: Generate RANDOM cube result first
+        const randomFaceIndex = Math.floor(Math.random() * cubeFaces.length);
+        const selectedFace = cubeFaces[randomFaceIndex];
         
+        // STEP 2: Animate cube to show the random result
+        await animateCubeToFace(selectedFace);
+        
+        // STEP 3: Wait 2 seconds so user can see the result
+        showStatus(`🎯 Cube shows: ${selectedFace.symbol} - ${selectedFace.reward > 0 ? selectedFace.reward + ' tokens!' : 'No win'}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // STEP 4: Now send the transaction to play game on-chain
         showStatus('🔄 Playing game on-chain...');
         const tx = await gameContract.playGame({ gasLimit: 200000 });
         
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
-        // Get the result
+        // STEP 5: Get the ACTUAL on-chain result
         const result = await gameContract.getLastResult(userAddress);
         const tokenDecimals = await tokenContract.decimals();
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
+        // STEP 6: Show appropriate message based on actual on-chain result
         if (tokensWon > 0) {
-          showStatus(`🎉 You won ${tokensWon} BASE tokens!`);
+          let rewardMessage = '';
+          let rewardEmoji = '';
+          
+          if (tokensWon >= 5) {
+            rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
+            rewardEmoji = '🏆';
+          } else if (tokensWon >= 3) {
+            rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
+            rewardEmoji = '💎';
+          } else {
+            rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
+            rewardEmoji = '⭐';
+          }
+          
+          showStatus(rewardMessage);
           createFireworks();
         } else {
-          showStatus('😢 Better luck next time!');
+          showStatus('❌ Better luck next time! No tokens won.');
         }
         
         await loadBalances();
@@ -647,18 +682,60 @@
       }
     });
 
-    function animateCube() {
+    function animateCubeToFace(face) {
       return new Promise((resolve) => {
         const cube = document.getElementById('cube');
-        let rotation = 0;
+        const targetX = face.position.x;
+        const targetY = face.position.y;
+        
+        // Add some random spins before landing on target
+        const spins = 3 + Math.random() * 2; // 3-5 spins
+        const totalRotation = spins * 360;
+        
+        let currentRotation = 0;
+        const startTime = Date.now();
+        const duration = 2000; // 2 seconds animation
         
         function animate() {
-          rotation += 20;
-          cube.style.transform = `rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
           
-          if (rotation < 720) {
+          // Ease out function for smooth deceleration
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          
+          if (progress < 0.8) {
+            // Fast spinning phase
+            currentRotation = totalRotation * (progress / 0.8);
+          } else {
+            // Slow down and land on target
+            const slowProgress = (progress - 0.8) / 0.2;
+            const easeInOut = slowProgress < 0.5 ? 
+              2 * slowProgress * slowProgress : 
+              1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
+            
+            currentRotation = totalRotation + (targetX - totalRotation % 360) * easeInOut;
+          }
+          
+          cube.style.transform = `rotateX(${currentRotation}deg) rotateY(${currentRotation}deg)`;
+          
+          if (progress < 1) {
             requestAnimationFrame(animate);
           } else {
+            // Final position
+            cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
+            
+            // Add win glow if it's a winning face
+            if (face.reward > 0) {
+              const faces = cube.getElementsByClassName('face');
+              for (let f of faces) {
+                if (f.textContent === face.symbol) {
+                  f.classList.add('win-glow');
+                  setTimeout(() => f.classList.remove('win-glow'), 2000);
+                  break;
+                }
+              }
+            }
+            
             resolve();
           }
         }
@@ -668,14 +745,14 @@
 
     function createFireworks() {
       const firework = document.getElementById('firework');
-      const colors = ['#0052FF', '#0070FF', '#FFFFFF'];
+      const colors = ['#0052FF', '#0070FF', '#FFFFFF', '#FFD700'];
       
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 40; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle');
         
         const angle = Math.random() * Math.PI * 2;
-        const distance = 50 + Math.random() * 100;
+        const distance = 60 + Math.random() * 120;
         const tx = Math.cos(angle) * distance;
         const ty = Math.sin(angle) * distance;
         

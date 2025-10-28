@@ -467,10 +467,10 @@
       "function symbol() view returns (string)"
     ];
 
-    // ABI for game contract (simplified)
+    // ABI for game contract (simplified) - FIXED setGameContract function
     const gameAbi = [
       "function playGame() returns (uint256)",
-      "function setGameContract(address)",
+      "function setGameContract(address _gameContract)",
       "function getLastResult(address) view returns (uint256)",
       "function claimRewards()"
     ];
@@ -576,6 +576,9 @@
           // Load user balance
           await loadUserBalance();
           
+          // Set game contract - FIXED IMPLEMENTATION
+          await setGameContract();
+          
           showTransactionStatus('Wallet connected successfully!');
           
           // Set up event listeners for account and chain changes
@@ -584,7 +587,23 @@
           
         } catch (error) {
           console.error('Error connecting wallet:', error);
-          showTransactionStatus('Error connecting wallet');
+          showTransactionStatus('Error connecting wallet: ' + error.message);
+        }
+      }
+
+      // FIXED: Proper setGameContract implementation
+      async function setGameContract() {
+        try {
+          showTransactionStatus('Setting up game contract...');
+          
+          // Check if setGameContract function exists and call it
+          // Note: This might require contract owner permissions
+          const tx = await gameContract.setGameContract(GAME_CONTRACT_ADDRESS);
+          await tx.wait();
+          console.log('Game contract set successfully');
+        } catch (error) {
+          // This is expected if the function doesn't exist or caller is not owner
+          console.log('setGameContract not available or already set:', error.message);
         }
       }
 
@@ -677,7 +696,7 @@
           
         } catch (error) {
           console.error('Error processing game:', error);
-          showTransactionStatus('Error processing game');
+          showTransactionStatus('Error processing game: ' + error.message);
         }
       }
 

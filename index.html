@@ -364,9 +364,9 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // UPDATE THESE ADDRESSES AFTER DEPLOYING NEW CONTRACT
+    // CONTRACT ADDRESSES - UPDATE AFTER DEPLOYING NEW CONTRACT
     const TOKEN_CONTRACT_ADDRESS = "0x4099884D7F81DbC19ec48623d29bb0B12CF3ba8C";
-    const GAME_CONTRACT_ADDRESS = "0x5800aD3D4552D72b118Ba1858aB00137AF7614f8"; 
+    const GAME_CONTRACT_ADDRESS = "0xD91266147D532997C1894FBDa84daF1ac9587f0e"; // ← DEPLOY NEW CONTRACT AND PUT ADDRESS HERE
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -382,17 +382,17 @@
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
 
-    // Cube face mapping - EXACT MATCH
+    // CUBE FACES - PERFECT MATCH WITH CONTRACT
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // 5 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // 0 tokens
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // 3 tokens
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // 1 token
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // 0 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // 0 tokens
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Face 0 = 5 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Face 1 = 0 tokens
+      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Face 2 = 3 tokens
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Face 3 = 1 token
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Face 4 = 0 tokens
+      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Face 5 = 0 tokens
     ];
 
-    // SIMPLIFIED ABI for new contract
+    // ABI for the FIXED contract
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
       "function decimals() view returns (uint8)",
@@ -405,7 +405,6 @@
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
       "function claimRewards()",
-      "function token() view returns (address)",
       "function REWARD_1() view returns (uint256)",
       "function REWARD_3() view returns (uint256)",
       "function REWARD_5() view returns (uint256)"
@@ -510,7 +509,6 @@
       try {
         // Test token contract
         const tokenSymbol = await tokenContract.symbol();
-        const gameToken = await gameContract.token();
         
         // Test game contract rewards
         const reward1 = await gameContract.REWARD_1();
@@ -518,10 +516,10 @@
         const reward5 = await gameContract.REWARD_5();
         
         updateDebugInfo(`Token: ${tokenSymbol}`);
-        console.log('Game rewards:', {
-          reward1: parseFloat(ethers.utils.formatUnits(reward1, tokenDecimals)),
-          reward3: parseFloat(ethers.utils.formatUnits(reward3, tokenDecimals)),
-          reward5: parseFloat(ethers.utils.formatUnits(reward5, tokenDecimals))
+        console.log('CONTRACT REWARDS:', {
+          '⭐': parseFloat(ethers.utils.formatUnits(reward1, tokenDecimals)) + ' tokens',
+          '💎': parseFloat(ethers.utils.formatUnits(reward3, tokenDecimals)) + ' tokens', 
+          '🏆': parseFloat(ethers.utils.formatUnits(reward5, tokenDecimals)) + ' tokens'
         });
         
         // Check game contract balance
@@ -655,14 +653,14 @@
         const result = await gameContract.getLastResult(userAddress);
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
-        // STEP 3: Map contract result to cube face
+        // STEP 3: Map contract result to EXACT cube face
         let selectedFace;
         if (tokensWon === 5) {
-          selectedFace = cubeFaces[0]; // 🏆
+          selectedFace = cubeFaces[0]; // 🏆 = 5 tokens
         } else if (tokensWon === 3) {
-          selectedFace = cubeFaces[2]; // 💎
+          selectedFace = cubeFaces[2]; // 💎 = 3 tokens
         } else if (tokensWon === 1) {
-          selectedFace = cubeFaces[3]; // ⭐
+          selectedFace = cubeFaces[3]; // ⭐ = 1 token
         } else {
           // Random losing face
           const losingFaces = [cubeFaces[1], cubeFaces[4], cubeFaces[5]];
@@ -700,8 +698,6 @@
           showStatus('⏳ ' + error.message);
         } else if (error.message.includes('Insufficient contract balance')) {
           showStatus('❌ Game contract out of tokens');
-        } else if (error.message.includes('Cooldown')) {
-          showStatus('⏳ Please wait before playing again');
         } else {
           showStatus('❌ Error: ' + error.message);
         }

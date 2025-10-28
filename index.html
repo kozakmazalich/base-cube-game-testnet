@@ -1,3 +1,5 @@
+html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -300,12 +302,54 @@
     }
 
     @media (max-width: 768px) {
-      body { flex-direction: column; gap: 30px; padding: 10px; }
-      .scene { width: 150px; height: 150px; }
-      .face { width: 150px; height: 150px; font-size: 40px; }
-      .front, .back, .right, .left, .top, .bottom { transform: translateZ(75px); }
-      .rewards-table { min-width: 200px; padding: 15px; }
-      .connect-btn { position: relative; top: 0; left: 0; margin-bottom: 20px; }
+      body { 
+        flex-direction: column; 
+        gap: 30px; 
+        padding: 10px; 
+      }
+      .scene { 
+        width: 150px; 
+        height: 150px; 
+      }
+      .face { 
+        width: 150px; 
+        height: 150px; 
+        font-size: 40px; 
+      }
+      .front  { transform: rotateY(0deg) translateZ(75px); }
+      .back   { transform: rotateY(180deg) translateZ(75px); }
+      .right  { transform: rotateY(90deg) translateZ(75px); }
+      .left   { transform: rotateY(-90deg) translateZ(75px); }
+      .top    { transform: rotateX(90deg) translateZ(75px); }
+      .bottom { transform: rotateX(-90deg) translateZ(75px); }
+      .rewards-table { 
+        min-width: 200px; 
+        padding: 15px; 
+      }
+      .connect-btn { 
+        position: relative; 
+        top: 0; 
+        left: 0; 
+        margin-bottom: 20px; 
+      }
+      .token-balance {
+        position: relative;
+        top: 0;
+        right: 0;
+        margin: 20px auto;
+      }
+      .debug-info {
+        position: relative;
+        bottom: 0;
+        left: 0;
+        margin: 20px auto;
+      }
+      .pixel-bg {
+        gap: 4px;
+      }
+      .pixel {
+        animation-duration: 20s;
+      }
     }
   </style>
 </head>
@@ -364,9 +408,9 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // NEW FIXED CONTRACT ADDRESS - DEPLOY THIS FIRST!
+    // Contract addresses
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
-    const GAME_CONTRACT_ADDRESS = "0x6A40F367D8FBa9bdce096D8394E96923b0418eA1"; // DEPLOY THE NEW CONTRACT AND PUT ADDRESS HERE
+    const GAME_CONTRACT_ADDRESS = "0x6A40F367D8FBa9bdce096D8394E96923b0418eA1";
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -382,17 +426,17 @@
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
 
-    // Cube face mapping - EXACT MATCH WITH CONTRACT
+    // Cube face mapping - EXACTLY AS YOU SPECIFIED
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Face 0: 5 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Face 1: 0 tokens
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Face 2: 3 tokens
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Face 3: 1 token
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Face 4: 0 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Face 5: 0 tokens
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
+      { symbol: '💎', reward: 3, position: { x: 0, y: -90 } },    // Right - 3 tokens WIN
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Top - 0 tokens LOSE
+      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
     ];
 
-    // ABI for the NEW FIXED contract
+    // Complete ABI for both contracts
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
       "function decimals() view returns (uint8)",
@@ -407,9 +451,7 @@
       "function playerBalance(address) view returns (uint256)",
       "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
       "function claimRewards()",
-      "function REWARD_1() view returns (uint256)",
-      "function REWARD_3() view returns (uint256)",
-      "function REWARD_5() view returns (uint256)",
+      "function rewards(uint256) view returns (uint256)",
       "function token() view returns (address)"
     ];
 
@@ -438,7 +480,12 @@
 
     function setupGameVisuals() {
       const pixelBg = document.getElementById('pixelBg');
-      for (let i = 0; i < 1600; i++) {
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      const gridSize = isMobile ? 20 : 40;
+      const pixelCount = gridSize * gridSize;
+      pixelBg.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+      pixelBg.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+      for (let i = 0; i < pixelCount; i++) {
         const pixel = document.createElement('div');
         pixel.classList.add('pixel');
         pixel.style.animationDelay = `${Math.random() * 15}s`;
@@ -514,17 +561,8 @@
         const tokenSymbol = await tokenContract.symbol();
         const gameToken = await gameContract.token();
         
-        // Test game contract rewards
-        const reward1 = await gameContract.REWARD_1();
-        const reward3 = await gameContract.REWARD_3();
-        const reward5 = await gameContract.REWARD_5();
-        
-        updateDebugInfo(`Token: ${tokenSymbol}, Rewards: 1/3/5`);
-        console.log('Game rewards:', {
-          reward1: parseFloat(ethers.utils.formatUnits(reward1, tokenDecimals)),
-          reward3: parseFloat(ethers.utils.formatUnits(reward3, tokenDecimals)),
-          reward5: parseFloat(ethers.utils.formatUnits(reward5, tokenDecimals))
-        });
+        updateDebugInfo(`Token: ${tokenSymbol}`);
+        console.log('Game token address:', gameToken);
         
         // Check game contract balance
         const gameBalance = await tokenContract.balanceOf(GAME_CONTRACT_ADDRESS);
@@ -537,7 +575,7 @@
         
       } catch (error) {
         console.error('Contract test error:', error);
-        updateDebugInfo('Error testing contracts - deploy new contract');
+        updateDebugInfo('Error testing contracts');
       }
     }
 
@@ -645,35 +683,48 @@
       showStatus('🎲 Rolling cube...');
 
       try {
-        // STEP 1: Play game on-chain first
+        // STEP 1: First play the game on-chain to get the REAL result
         showStatus('🔄 Playing game on-chain...');
         const tx = await gameContract.playGame({ gasLimit: 200000 });
         
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
-        // STEP 2: Get ACTUAL result from contract
+        // STEP 2: Get the ACTUAL on-chain result
         const result = await gameContract.getLastResult(userAddress);
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
         
-        // STEP 3: Map contract result to cube face
-        let selectedFace;
+        // STEP 3: Show what the contract ACTUALLY gave
+        let actualSymbol = '❌';
+        let actualReward = 0;
+        
         if (tokensWon === 5) {
-          selectedFace = cubeFaces[0]; // 🏆
+          actualSymbol = '🏆';
+          actualReward = 5;
         } else if (tokensWon === 3) {
-          selectedFace = cubeFaces[2]; // 💎
+          actualSymbol = '💎';
+          actualReward = 3;
         } else if (tokensWon === 1) {
-          selectedFace = cubeFaces[3]; // ⭐
+          actualSymbol = '⭐';
+          actualReward = 1;
         } else {
-          // Random losing face (1, 4, or 5)
-          const losingFaces = [cubeFaces[1], cubeFaces[4], cubeFaces[5]];
-          selectedFace = losingFaces[Math.floor(Math.random() * losingFaces.length)];
+          actualSymbol = '❌';
+          actualReward = 0;
         }
         
-        // STEP 4: Animate to show ACTUAL result
+        // STEP 4: Find the matching face for the actual result
+        let matchingFaces = cubeFaces.filter(face => face.symbol === actualSymbol && face.reward === actualReward);
+        let selectedFace = matchingFaces[Math.floor(Math.random() * matchingFaces.length)];
+        
+        // If no match, pick random
+        if (!selectedFace) {
+          selectedFace = cubeFaces[Math.floor(Math.random() * cubeFaces.length)];
+        }
+        
+        // STEP 5: Animate cube to show what was ACTUALLY won
         await animateCubeToFace(selectedFace);
         
-        // STEP 5: Show EXACT result
+        // STEP 6: Show EXACT result message
         if (tokensWon > 0) {
           let rewardMessage = '';
           
@@ -683,6 +734,8 @@
             rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
           } else if (tokensWon === 1) {
             rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
+          } else {
+            rewardMessage = `🎉 You won ${tokensWon} $BASE tokens!`;
           }
           
           showStatus(rewardMessage);
@@ -718,7 +771,6 @@
         const spins = 3 + Math.random() * 2; // 3-5 spins
         const totalRotation = spins * 360;
         
-        let currentRotation = 0;
         const startTime = Date.now();
         const duration = 2000; // 2 seconds animation
         
@@ -729,9 +781,12 @@
           // Ease out function for smooth deceleration
           const easeOut = 1 - Math.pow(1 - progress, 3);
           
+          let currentX, currentY;
           if (progress < 0.8) {
             // Fast spinning phase
-            currentRotation = totalRotation * (progress / 0.8);
+            const fastProgress = progress / 0.8;
+            currentX = totalRotation * fastProgress;
+            currentY = totalRotation * fastProgress;
           } else {
             // Slow down and land on target
             const slowProgress = (progress - 0.8) / 0.2;
@@ -739,10 +794,11 @@
               2 * slowProgress * slowProgress : 
               1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
             
-            currentRotation = totalRotation + (targetX - totalRotation % 360) * easeInOut;
+            currentX = totalRotation + (targetX - (totalRotation % 360)) * easeInOut;
+            currentY = totalRotation + (targetY - (totalRotation % 360)) * easeInOut;
           }
           
-          cube.style.transform = `rotateX(${currentRotation}deg) rotateY(${currentRotation}deg)`;
+          cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
           
           if (progress < 1) {
             requestAnimationFrame(animate);

@@ -3,417 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Base Cube Game - Win $BASE</title>
-  
+  <title>Base Cube Game - Win $BCUBE</title>
+
+  <!-- Farcaster Frame -->
+  <meta property="fc:frame" content="vNext" />
+  <meta property="fc:frame:image" content="https://i.imgur.com/6wX7Z2y.png" />
+  <meta property="fc:frame:button:1" content="Roll Cube" />
+  <meta property="fc:frame:post_url" content="https://your-app.com/api/frame" />
+
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#0a0e17;overflow:hidden;position:relative;font-family:system-ui,sans-serif;gap:60px;padding:20px;flex-wrap:wrap;}
+    .pixel-bg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:-1;display:grid;grid-template-columns:repeat(40,1fr);grid-template-rows:repeat(40,1fr);gap:2px;padding:10px;}
+    .pixel{background:rgba(0,82,255,.05);border-radius:1px;aspect-ratio:1/1;animation:pixelGlow 12s infinite ease-in-out;}
+    @keyframes pixelGlow{0%,85%{background:rgba(0,82,255,.05)}90%{background:rgba(0,82,255,.3);box-shadow:0 0 6px #fff}95%{background:rgba(255,255,255,.6);box-shadow:0 0 8px #fff}100%{background:rgba(0,82,255,.05)}}
 
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #0a0e17;
-      overflow: hidden;
-      position: relative;
-      font-family: system-ui, -apple-system, sans-serif;
-      gap: 60px;
-      padding: 20px;
-    }
+    .scene{width:200px;height:200px;perspective:1000px;}
+    .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transform:rotateX(15deg) rotateY(15deg);}
+    .face{position:absolute;width:200px;height:200px;border-radius:12px;display:flex;justify-content:center;align-items:center;font-size:60px;font-weight:700;color:white;text-shadow:0 2px 10px #000;box-shadow:0 0 25px rgba(0,82,255,.6),inset 0 0 40px rgba(255,255,255,.15);background:linear-gradient(135deg,rgba(0,82,255,.9),rgba(0,112,255,.9));backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);}
 
-    .pixel-bg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      display: grid;
-      grid-template-columns: repeat(40, 1fr);
-      grid-template-rows: repeat(40, 1fr);
-      gap: 2px;
-      padding: 10px;
-    }
+    /* WHITE RIB LINES */
+    .face::before,.face::after{content:"";position:absolute;background:#fff;width:100%;height:3px;opacity:0.9;box-shadow:0 0 6px #fff;}
+    .face::before{top:0;left:0;}
+    .face::after{top:0;left:0;transform:rotate(90deg);}
 
-    .pixel {
-      background: rgba(0, 82, 255, 0.05);
-      border-radius: 1px;
-      aspect-ratio: 1/1;
-      animation: pixelGlow 12s infinite ease-in-out;
-    }
+    .front  {transform:rotateY(0deg) translateZ(100px);}
+    .back   {transform:rotateY(180deg) translateZ(100px);}
+    .right  {transform:rotateY(90deg) translateZ(100px);}
+    .left   {transform:rotateY(-90deg) translateZ(100px);}
+    .top    {transform:rotateX(90deg) translateZ(100px);}
+    .bottom {transform:rotateX(-90deg) translateZ(100px);}
 
-    @keyframes pixelGlow {
-      0%, 85% {
-        background: rgba(0, 82, 255, 0.05);
-        box-shadow: 0 0 1px rgba(0, 82, 255, 0);
-      }
-      90% {
-        background: rgba(0, 82, 255, 0.3);
-        box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
-      }
-      95% {
-        background: rgba(255, 255, 255, 0.6);
-        box-shadow: 0 0 8px rgba(255, 255, 255, 1);
-      }
-      100% {
-        background: rgba(0, 82, 255, 0.05);
-        box-shadow: 0 0 1px rgba(0, 82, 255, 0);
-      }
-    }
+    .btn{padding:16px 40px;font-size:18px;font-weight:600;background:linear-gradient(135deg,#0052FF,#0070FF);color:white;border:none;border-radius:50px;cursor:pointer;box-shadow:0 10px 25px rgba(0,82,255,.4);transition:all .4s;position:relative;overflow:hidden;margin:8px;}
+    .btn:hover{transform:translateY(-4px);box-shadow:0 15px 30px rgba(0,82,255,.6);}
+    .btn::before{content:"";position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);transition:left .6s;}
+    .btn:hover::before{left:100%;}
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
 
-    .scene {
-      width: 200px;
-      height: 200px;
-      perspective: 1000px;
-    }
+    .firework{position:absolute;pointer-events:none;z-index:100;}
+    .particle{position:absolute;width:6px;height:6px;border-radius:50%;animation:firework 1.5s ease-out forwards;}
+    @keyframes firework{0%{transform:translate(0,0) scale(1);opacity:1}50%{opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
 
-    .cube {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transform: rotateX(15deg) rotateY(15deg);
-    }
+    .win-glow{animation:winGlow 2s ease-in-out;}
+    @keyframes winGlow{0%,100%{box-shadow:0 0 25px rgba(0,82,255,.6)}50%{box-shadow:0 0 50px #fff,0 0 80px #0052FF, inset 0 0 60px #fff}}
 
-    .face {
-      position: absolute;
-      width: 200px;
-      height: 200px;
-      border-radius: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 60px;
-      font-weight: 700;
-      color: white;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      box-shadow: 
-        0 0 25px rgba(0, 82, 255, 0.6),
-        inset 0 0 40px rgba(255, 255, 255, 0.15);
-      background: linear-gradient(135deg, rgba(0, 82, 255, 0.9) 0%, rgba(0, 112, 255, 0.9) 100%);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
+    .rewards-table{background:rgba(0,82,255,.1);backdrop-filter:blur(10px);border-radius:16px;padding:25px;border:1px solid rgba(255,255,255,.15);box-shadow:0 10px 30px rgba(0,82,255,.2);min-width:250px;}
+    .rewards-table h3{color:white;text-align:center;margin-bottom:20px;font-size:20px;}
+    .reward-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1);color:white;}
+    .reward-item:last-child{border-bottom:none;}
+    .reward-symbol{font-size:24px;margin-right:15px;}
+    .reward-text{flex:1;font-size:16px;}
+    .reward-tokens{background:linear-gradient(135deg,#0052FF,#0070FF);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600;}
 
-    .face::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border-radius: 12px;
-      box-shadow: 
-        inset 0 0 0 2px rgba(255, 255, 255, 0.2),
-        inset 0 0 0 4px rgba(255, 255, 255, 0.1);
-      pointer-events: none;
-    }
+    .game-container{display:flex;flex-direction:column;align-items:center;}
+    .game-cost{color:white;font-size:14px;margin-top:10px;opacity:.8;}
+    .token-balance{position:absolute;top:20px;right:20px;z-index:1000;background:rgba(0,82,255,.1);backdrop-filter:blur(10px);border-radius:16px;padding:15px 20px;border:1px solid rgba(255,255,255,.15);color:white;font-size:14px;box-shadow:0 8px 25px rgba(0,82,255,.2);text-align:center;display:none;}
+    .balance{font-weight:600;margin-top:5px;color:#FFD700;}
+    .transaction-status{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,82,255,.9);color:white;padding:12px 24px;border-radius:25px;font-weight:600;z-index:1000;backdrop-filter:blur(10px);box-shadow:0 8px 25px rgba(0,82,255,.4);text-align:center;max-width:400px;}
 
-    .front  { transform: rotateY(0deg) translateZ(100px); }
-    .back   { transform: rotateY(180deg) translateZ(100px); }
-    .right  { transform: rotateY(90deg) translateZ(100px); }
-    .left   { transform: rotateY(-90deg) translateZ(100px); }
-    .top    { transform: rotateX(90deg) translateZ(100px); }
-    .bottom { transform: rotateX(-90deg) translateZ(100px); }
-
-    .roll-btn {
-      padding: 16px 40px;
-      font-size: 18px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #0052FF 0%, #0070FF 100%);
-      color: white;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(0, 82, 255, 0.4);
-      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-      position: relative;
-      overflow: hidden;
-      letter-spacing: 0.5px;
-      margin-top: 30px;
-    }
-
-    .roll-btn:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 15px 30px rgba(0, 82, 255, 0.6);
-      background: linear-gradient(135deg, #0070FF 0%, #0088FF 100%);
-    }
-
-    .roll-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 5px 15px rgba(0, 82, 255, 0.4);
-    }
-
-    .roll-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      transition: left 0.6s;
-    }
-
-    .roll-btn:hover::before {
-      left: 100%;
-    }
-
-    .roll-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .connect-btn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 1000;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #0052FF 0%, #0070FF 100%);
-      color: white;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(0, 82, 255, 0.4);
-      transition: all 0.3s ease;
-    }
-
-    .connect-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 25px rgba(0, 82, 255, 0.6);
-    }
-
-    .connect-btn.connected {
-      background: linear-gradient(135deg, #00C851 0%, #00E676 100%);
-    }
-
-    .firework {
-      position: absolute;
-      pointer-events: none;
-      z-index: 100;
-    }
-
-    .particle {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      animation: firework 1.5s ease-out forwards;
-    }
-
-    @keyframes firework {
-      0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 1;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        transform: translate(var(--tx), var(--ty)) scale(0);
-        opacity: 0;
-      }
-    }
-
-    .win-glow {
-      animation: winGlow 2s ease-in-out;
-    }
-
-    @keyframes winGlow {
-      0%, 100% {
-        box-shadow: 
-          0 0 25px rgba(0, 82, 255, 0.6),
-          inset 0 0 40px rgba(255, 255, 255, 0.15);
-      }
-      50% {
-        box-shadow: 
-          0 0 50px rgba(255, 255, 255, 0.9),
-          0 0 80px rgba(0, 82, 255, 0.8),
-          inset 0 0 60px rgba(255, 255, 255, 0.4);
-      }
-    }
-
-    .rewards-table {
-      background: rgba(0, 82, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 25px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 10px 30px rgba(0, 82, 255, 0.2);
-      min-width: 250px;
-    }
-
-    .rewards-table h3 {
-      color: white;
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    .reward-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    .reward-item:last-child {
-      border-bottom: none;
-    }
-
-    .reward-symbol {
-      font-size: 24px;
-      margin-right: 15px;
-    }
-
-    .reward-text {
-      flex: 1;
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .reward-tokens {
-      background: linear-gradient(135deg, #0052FF, #0070FF);
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .game-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .game-cost {
-      color: white;
-      font-size: 14px;
-      margin-top: 10px;
-      opacity: 0.8;
-    }
-
-    .token-balance {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
-      background: rgba(0, 82, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 15px 20px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: white;
-      font-size: 14px;
-      box-shadow: 0 8px 25px rgba(0, 82, 255, 0.2);
-      text-align: center;
-    }
-
-    .balance {
-      font-weight: 600;
-      margin-top: 5px;
-      color: #FFD700;
-    }
-
-    .transaction-status {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 82, 255, 0.9);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 25px;
-      font-weight: 600;
-      z-index: 1000;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 25px rgba(0, 82, 255, 0.4);
-      text-align: center;
-      max-width: 400px;
-    }
-
-    @media (max-width: 768px) {
-      body {
-        flex-direction: column;
-        gap: 30px;
-        padding: 10px;
-      }
-      
-      .scene {
-        width: 150px;
-        height: 150px;
-      }
-      
-      .face {
-        width: 150px;
-        height: 150px;
-        font-size: 40px;
-      }
-      
-      .front  { transform: rotateY(0deg) translateZ(75px); }
-      .back   { transform: rotateY(180deg) translateZ(75px); }
-      .right  { transform: rotateY(90deg) translateZ(75px); }
-      .left   { transform: rotateY(-90deg) translateZ(75px); }
-      .top    { transform: rotateX(90deg) translateZ(75px); }
-      .bottom { transform: rotateX(-90deg) translateZ(75px); }
-      
-      .rewards-table {
-        min-width: 200px;
-        padding: 15px;
-      }
+    @media (max-width:768px){
+      body{flex-direction:column;gap:30px;}
+      .scene{width:150px;height:150px;}
+      .face{width:150px;height:150px;font-size:40px;}
+      .front{transform:rotateY(0deg) translateZ(75px);}
+      .back{transform:rotateY(180deg) translateZ(75px);}
+      .right{transform:rotateY(90deg) translateZ(75px);}
+      .left{transform:rotateY(-90deg) translateZ(75px);}
+      .top{transform:rotateX(90deg) translateZ(75px);}
+      .bottom{transform:rotateX(-90deg) translateZ(75px);}
     }
   </style>
 </head>
 <body>
-  <button class="connect-btn" id="connectBtn">Connect Wallet</button>
 
-  <div class="token-balance">
-    <div>$BASE Balance: <span id="tokenBalance">0</span></div>
+  <!-- Connect Wallet -->
+  <button class="btn" id="connectBtn">Connect Wallet</button>
+
+  <!-- Balance -->
+  <div class="token-balance" id="balanceBox">
+    <div>$BCUBE Balance: <span id="tokenBalance">0</span></div>
   </div>
 
+  <!-- Rewards -->
   <div class="rewards-table">
     <h3>Rewards</h3>
-    <div class="reward-item">
-      <span class="reward-symbol"></span>
-      <span class="reward-text">1 base token</span>
-      <span class="reward-tokens">+1</span>
-    </div>
-    <div class="reward-item">
-      <span class="reward-symbol"></span>
-      <span class="reward-text">3 base tokens</span>
-      <span class="reward-tokens">+3</span>
-    </div>
-    <div class="reward-item">
-      <span class="reward-symbol"></span>
-      <span class="reward-text">5 base tokens</span>
-      <span class="reward-tokens">+5</span>
-    </div>
+    <div class="reward-item"><span class="reward-symbol">Diamond</span><span class="reward-text">1 BCUBE token</span><span class="reward-tokens">+1</span></div>
+    <div class="reward-item"><span class="reward-symbol">Star</span><span class="reward-text">3 BCUBE tokens</span><span class="reward-tokens">+3</span></div>
+    <div class="reward-item"><span class="reward-symbol">Trophy</span><span class="reward-text">5 BCUBE tokens</span><span class="reward-tokens">+5</span></div>
   </div>
 
+  <!-- Game -->
   <div class="game-container">
     <div class="scene">
       <div class="cube" id="cube">
-        <div class="face front"></div>
-        <div class="face back"></div>
-        <div class="face right"></div>
-        <div class="face left"></div>
-        <div class="face top"></div>
-        <div class="face bottom"></div>
+        <div class="face front">Trophy</div>
+        <div class="face back">Cross</div>
+        <div class="face right">Diamond</div>
+        <div class="face left">Star</div>
+        <div class="face top">Cross</div>
+        <div class="face bottom">Cross</div>
       </div>
     </div>
-
-    <button class="roll-btn" id="rollBtn">ROLL</button>
+    <button class="btn" id="rollBtn" style="display:none;">ROLL</button>
+    <button class="btn" id="claimBtn" style="display:none;">Claim 10 Free $BCUBE</button>
     <div class="game-cost">Free to play!</div>
   </div>
 
@@ -421,311 +114,183 @@
   <div class="firework" id="firework"></div>
 
   <script>
-    // Game Configuration - EXACT ORIGINAL
-    const TOKEN_REWARDS = {
-      '': 1,
-      '': 3,
-      '': 5
+    // CONTRACTS
+    const TOKEN_ADDRESS = "0x3C307A3dDfB4B2B1f67eBD5E17A751488572F72c";
+    const GAME_ADDRESS  = "0x6B7CA86362c0C3BE01B23Ef03a2c2Cb17692c0f4";
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    let signer, token, game, user;
+
+    const connectBtn = document.getElementById('connectBtn');
+    const rollBtn = document.getElementById('rollBtn');
+    const claimBtn = document.getElementById('claimBtn');
+    const balanceBox = document.getElementById('balanceBox');
+    const tokenBal = document.getElementById('tokenBalance');
+
+    // Connect Wallet
+    connectBtn.onclick = async () => {
+      try {
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        user = await signer.getAddress();
+
+        token = new ethers.Contract(TOKEN_ADDRESS, [
+          "function balanceOf(address) view returns (uint256)",
+          "function claimFreeTokens()"
+        ], signer);
+
+        game = new ethers.Contract(GAME_ADDRESS, [
+          "function rollAndReward(address winner, uint256 rewardType)"
+        ], signer);
+
+        connectBtn.style.display = 'none';
+        balanceBox.style.display = 'block';
+        rollBtn.style.display = 'block';
+        claimBtn.style.display = 'block';
+        await updateBalance();
+      } catch (e) {
+        alert("Connect MetaMask to Base Sepolia");
+      }
     };
 
-    // DOM Elements
-    const tokenBalanceElement = document.getElementById('tokenBalance');
-    const rollBtn = document.getElementById('rollBtn');
-    const connectBtn = document.getElementById('connectBtn');
-
-    let userTokenBalance = 0;
-    let isWalletConnected = false;
-    let userAddress = null;
-
-    // Base Sepolia Configuration
-    const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
-
-    function initializeBaseApp() {
-      console.log('Initializing Base Cube Game...');
-      setupGame();
+    // Update Balance
+    async function updateBalance() {
+      const bal = await token.balanceOf(user);
+      tokenBal.textContent = ethers.utils.formatUnits(bal, 18);
     }
 
-    function setupGame() {
-      // Show transaction status
-      function showTransactionStatus(message) {
-        const existingStatus = document.querySelector('.transaction-status');
-        if (existingStatus) {
-          existingStatus.remove();
-        }
-        
-        const status = document.createElement('div');
-        status.className = 'transaction-status';
-        status.textContent = message;
-        document.body.appendChild(status);
-        
-        setTimeout(() => {
-          if (status.parentNode) {
-            status.remove();
-          }
-        }, 5000);
+    // Claim Free Tokens
+    claimBtn.onclick = async () => {
+      claimBtn.disabled = true;
+      showStatus("Claiming 10 $BCUBE...");
+      try {
+        const tx = await token.claimFreeTokens();
+        await tx.wait();
+        await updateBalance();
+        showStatus("Claimed 10 $BCUBE!");
+      } catch (e) {
+        showStatus("Already claimed");
       }
+      claimBtn.disabled = false;
+    };
 
-      // SIMPLE WALLET CONNECTION - NO ETHERS.JS NEEDED
-      async function connectWallet() {
-        console.log('Attempting wallet connection...');
-        
-        if (typeof window.ethereum === 'undefined') {
-          showTransactionStatus('❌ Please install MetaMask!');
-          return;
-        }
-
-        try {
-          showTransactionStatus('🔗 Connecting wallet...');
-          
-          // SIMPLE: Just request accounts
-          const accounts = await window.ethereum.request({
-            method: 'eth_requestAccounts'
-          });
-
-          if (accounts.length === 0) {
-            throw new Error('No accounts found');
-          }
-
-          userAddress = accounts[0];
-          console.log('Connected account:', userAddress);
-
-          // Check network
-          const chainId = await window.ethereum.request({
-            method: 'eth_chainId'
-          });
-
-          console.log('Current chain:', chainId);
-
-          if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
-            showTransactionStatus('⚠️ Switching to Base Sepolia...');
-            try {
-              await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
-              });
-            } catch (switchError) {
-              if (switchError.code === 4902) {
-                await window.ethereum.request({
-                  method: 'wallet_addEthereumChain',
-                  params: [{
-                    chainId: BASE_SEPOLIA_CHAIN_ID,
-                    chainName: 'Base Sepolia',
-                    rpcUrls: ['https://sepolia.base.org'],
-                    nativeCurrency: {
-                      name: 'Ether',
-                      symbol: 'ETH',
-                      decimals: 18
-                    },
-                    blockExplorerUrls: ['https://sepolia.basescan.org']
-                  }]
-                });
-              } else {
-                throw switchError;
-              }
-            }
-          }
-
-          isWalletConnected = true;
-          connectBtn.textContent = '✅ Connected';
-          connectBtn.classList.add('connected');
-          
-          showTransactionStatus('🎉 Wallet connected to Base Sepolia! Game ready!');
-
-          // Set demo balance
-          userTokenBalance = 10;
-          tokenBalanceElement.textContent = userTokenBalance;
-
-        } catch (error) {
-          console.error('Connection error:', error);
-          showTransactionStatus('❌ Connection failed: ' + error.message);
-        }
-      }
-
-      // Process game rewards - SIMPLE VERSION
-      function processGameResult(winningSymbol) {
-        if (!isWalletConnected) {
-          showTransactionStatus('Please connect wallet first');
-          return;
-        }
-
-        try {
-          showTransactionStatus('Processing game result...');
-          
-          setTimeout(() => {
-            if (winningSymbol === '') {
-              showTransactionStatus('Better luck next time!');
-            } else {
-              const tokensWon = TOKEN_REWARDS[winningSymbol];
-              
-              // Update UI
-              userTokenBalance += tokensWon;
-              tokenBalanceElement.textContent = userTokenBalance;
-              
-              showTransactionStatus(`🎉 You won ${tokensWon} $BASE tokens!`);
-            }
-          }, 2000);
-          
-        } catch (error) {
-          console.error('Game error:', error);
-          showTransactionStatus('Error processing game');
-        }
-      }
-
-      // Original background
-      const pixelBg = document.getElementById('pixelBg');
-      const pixelCount = 1600;
-      
-      for (let i = 0; i < pixelCount; i++) {
-        const pixel = document.createElement('div');
-        pixel.classList.add('pixel');
-        pixel.style.animationDelay = `${Math.random() * 15}s`;
-        pixel.style.animationDuration = `${10 + Math.random() * 8}s`;
-        pixelBg.appendChild(pixel);
-      }
-
-      // EXACT ORIGINAL GAME LOGIC
-      const cube = document.getElementById('cube');
-      const firework = document.getElementById('firework');
-      
-      let isSpinning = false;
-      
-      const winSymbols = ['', '', ''];
-      const stopPositions = [
-        { x: 0, y: 0, z: 0, symbol: '' },
-        { x: 0, y: 180, z: 0, symbol: '' },
-        { x: 90, y: 0, z: 0, symbol: '' },
-        { x: -90, y: 0, z: 0, symbol: '' },
-        { x: 0, y: 90, z: 0, symbol: '' },
-        { x: 0, y: -90, z: 0, symbol: '' }
-      ];
-      
-      function createFirework(x, y) {
-        const colors = ['#0052FF', '#0070FF', '#FFFFFF', '#0088FF', '#E6F0FF', '#B3D4FF'];
-        
-        for (let i = 0; i < 60; i++) {
-          const particle = document.createElement('div');
-          particle.classList.add('particle');
-          
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 80 + Math.random() * 120;
-          const tx = Math.cos(angle) * distance;
-          const ty = Math.sin(angle) * distance;
-          const color = colors[Math.floor(Math.random() * colors.length)];
-          const size = 3 + Math.random() * 4;
-          const duration = 1 + Math.random() * 0.5;
-          
-          particle.style.left = `${x}px`;
-          particle.style.top = `${y}px`;
-          particle.style.width = `${size}px`;
-          particle.style.height = `${size}px`;
-          particle.style.background = color;
-          particle.style.setProperty('--tx', `${tx}px`);
-          particle.style.setProperty('--ty', `${ty}px`);
-          particle.style.animationDuration = `${duration}s`;
-          
-          firework.appendChild(particle);
-          
-          setTimeout(() => particle.remove(), duration * 1000);
-        }
-      }
-      
-      function createVictoryFireworks() {
-        const positions = [
-          [window.innerWidth * 0.1, window.innerHeight * 0.1],
-          [window.innerWidth * 0.9, window.innerHeight * 0.1],
-          [window.innerWidth * 0.1, window.innerHeight * 0.9],
-          [window.innerWidth * 0.9, window.innerHeight * 0.9],
-          [window.innerWidth * 0.5, window.innerHeight * 0.1],
-          [window.innerWidth * 0.5, window.innerHeight * 0.9],
-          [window.innerWidth * 0.1, window.innerHeight * 0.5],
-          [window.innerWidth * 0.9, window.innerHeight * 0.5]
-        ];
-        
-        positions.forEach(([x, y], index) => {
-          setTimeout(() => createFirework(x, y), index * 150);
-        });
-      }
-      
-      function spinCube() {
-        if (isSpinning) return;
-        
-        isSpinning = true;
-        rollBtn.disabled = true;
-        
-        const startX = Math.random() * 360;
-        const startY = Math.random() * 360;
-        const finalPos = stopPositions[Math.floor(Math.random() * stopPositions.length)];
-        
-        let startTime = null;
-        const totalDuration = 4000;
-        
-        function animate(currentTime) {
-          if (!startTime) startTime = currentTime;
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / totalDuration, 1);
-          
-          if (progress < 0.75) {
-            const spinProgress = Math.min(elapsed / 3000, 1);
-            const easeOut = 1 - Math.pow(1 - spinProgress, 3);
-            const currentX = startX + (720 * easeOut);
-            const currentY = startY + (720 * easeOut);
-            cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-          } else {
-            const slowProgress = (progress - 0.75) / 0.25;
-            const easeInOut = slowProgress < 0.5 ? 
-              2 * slowProgress * slowProgress : 
-              1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
-            const currentX = finalPos.x * easeInOut;
-            const currentY = finalPos.y * easeInOut;
-            cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-          }
-          
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            cube.style.transform = `rotateX(${finalPos.x}deg) rotateY(${finalPos.y}deg)`;
-            
-            const isWinSymbol = winSymbols.includes(finalPos.symbol);
-            
-            if (isWinSymbol) {
-              const faces = cube.getElementsByClassName('face');
-              for (let face of faces) {
-                if (face.textContent === finalPos.symbol) {
-                  face.classList.add('win-glow');
-                  processGameResult(finalPos.symbol);
-                  createVictoryFireworks();
-                  setTimeout(() => face.classList.remove('win-glow'), 2000);
-                  break;
-                }
-              }
-            } else {
-              processGameResult('');
-            }
-            
-            isSpinning = false;
-            rollBtn.disabled = false;
-          }
-        }
-        
-        requestAnimationFrame(animate);
-      }
-      
-      // EVENT LISTENERS
-      connectBtn.addEventListener('click', connectWallet);
-      rollBtn.addEventListener('click', spinCube);
-
-      // Initial animation
-      cube.style.opacity = '0';
-      cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
-      setTimeout(() => {
-        cube.style.transition = 'all 1.2s ease-out';
-        cube.style.opacity = '1';
-        cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(1)';
-      }, 300);
+    // Status Toast
+    function showStatus(msg) {
+      const el = document.createElement('div');
+      el.className = 'transaction-status';
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
     }
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', initializeBaseApp);
+    // Cube with Emojis
+    const cube = document.getElementById('cube');
+    const firework = document.getElementById('firework');
+    let spinning = false;
+
+    const outcomes = [
+      {x: 0,   y: 0,   sym: "Trophy",  reward: 5},
+      {x: 0,   y: 180, sym: "Cross",   reward: 0},
+      {x: 90,  y: 0,   sym: "Cross",   reward: 0},
+      {x: -90, y: 0,   sym: "Cross",   reward: 0},
+      {x: 0,   y: 90,  sym: "Diamond", reward: 3},
+      {x: 0,   y: -90, sym: "Star",    reward: 1}
+    ];
+
+    function createFirework(x, y) {
+      const colors = ['#0052FF', '#0070FF', '#FFFFFF', '#0088FF'];
+      for (let i = 0; i < 60; i++) {
+        const p = document.createElement('div'); p.className = 'particle';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 80 + Math.random() * 120;
+        const tx = Math.cos(angle) * dist, ty = Math.sin(angle) * dist;
+        p.style.left = `${x}px`; p.style.top = `${y}px`;
+        p.style.width = p.style.height = `${3 + Math.random() * 4}px`;
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.setProperty('--tx', `${tx}px`);
+        p.style.setProperty('--ty', `${ty}px`);
+        p.style.animationDuration = `${1 + Math.random() * 0.5}s`;
+        firework.appendChild(p);
+        setTimeout(() => p.remove(), 1500);
+      }
+    }
+
+    function victoryFireworks() {
+      const pos = [[.1,.1],[.9,.1],[.1,.9],[.9,.9],[.5,.1],[.5,.9],[.1,.5],[.9,.5]];
+      pos.forEach(([rx,ry],i) => setTimeout(() => createFirework(innerWidth*rx, innerHeight*ry), i*150));
+    }
+
+    rollBtn.onclick = async () => {
+      if (spinning) return;
+      spinning = true; rollBtn.disabled = true;
+      showStatus("Rolling...");
+
+      const result = outcomes[Math.floor(Math.random() * outcomes.length)];
+      const startX = Math.random() * 360, startY = Math.random() * 360;
+      let startTime = null;
+
+      function animate(t) {
+        if (!startTime) startTime = t;
+        const elapsed = t - startTime;
+        const prog = Math.min(elapsed / 4000, 1);
+
+        if (prog < 0.75) {
+          const spinProg = elapsed / 3000;
+          const ease = 1 - Math.pow(1 - spinProg, 3);
+          cube.style.transform = `rotateX(${startX + 720 * ease}deg) rotateY(${startY + 720 * ease}deg)`;
+        } else {
+          const slow = (prog - 0.75) / 0.25;
+          const ease = slow < 0.5 ? 2 * slow * slow : 1 - Math.pow(-2 * slow + 2, 2) / 2;
+          cube.style.transform = `rotateX(${result.x * ease}deg) rotateY(${result.y * ease}deg)`;
+        }
+
+        if (prog < 1) requestAnimationFrame(animate);
+        else finish(result);
+      }
+      requestAnimationFrame(animate);
+    };
+
+    async function finish(res) {
+      cube.style.transform = `rotateX(${res.x}deg) rotateY(${res.y}deg)`;
+
+      if (res.reward > 0) {
+        showStatus(`You won ${res.reward} $BCUBE! Sending...`);
+        try {
+          const tx = await game.rollAndReward(user, res.reward);
+          await tx.wait();
+          await updateBalance();
+          showStatus(`+${res.reward} $BCUBE received!`);
+          victoryFireworks();
+          const face = [...cube.children].find(f => f.textContent === res.sym);
+          face.classList.add('win-glow');
+          setTimeout(() => face.classList.remove('win-glow'), 2000);
+        } catch (e) {
+          showStatus("Reward failed");
+        }
+      } else {
+        showStatus("Better luck next time! Cross");
+      }
+
+      spinning = false;
+      rollBtn.disabled = false;
+    }
+
+    // Pixel BG
+    const bg = document.getElementById('pixelBg');
+    for (let i = 0; i < 1600; i++) {
+      const p = document.createElement('div'); p.className = 'pixel';
+      p.style.animationDelay = `${Math.random() * 15}s`;
+      p.style.animationDuration = `${10 + Math.random() * 8}s`;
+      bg.appendChild(p);
+    }
+
+    // Farcaster
+    if (typeof sdk !== 'undefined') sdk.actions.ready().catch(() => {});
+  </script>
+
+  <script type="module">
+    import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
+    sdk.actions.ready().catch(() => {});
   </script>
 </body>
 </html>

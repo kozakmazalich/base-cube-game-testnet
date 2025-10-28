@@ -482,419 +482,234 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // Contract addresses for Base Sepolia (UPDATE THESE AFTER DEPLOYMENT)
-    const TOKEN_CONTRACT_ADDRESS = "0xBEDe39E8c95E8FAFe1cdb0c256D35A2c894180fb";
-    const GAME_CONTRACT_ADDRESS = "0x79f550C69a2263051b17Eea301aFc97D8617132F";
+    // Contract addresses - UPDATE THESE WITH YOUR DEPLOYED CONTRACTS
+const TOKEN_CONTRACT_ADDRESS = "0xBEDe39E8c95E8FAFe1cdb0c256D35A2c894180fb";
+const GAME_CONTRACT_ADDRESS = "0x8b6f5B47109E41476A48D8Bc902A3A405a99BBAB";
+
+// Base Sepolia
+const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
+
+// DOM Elements
+const tokenBalanceElement = document.getElementById('tokenBalance');
+const walletAddressElement = document.getElementById('walletAddress');
+const rollBtn = document.getElementById('rollBtn');
+const connectBtn = document.getElementById('connectBtn');
+
+let provider, signer, tokenContract, gameContract, userAddress;
+
+// Minimal ABI
+const tokenAbi = [
+    "function balanceOf(address) view returns (uint256)",
+    "function decimals() view returns (uint8)"
+];
+
+const gameAbi = [
+    "function playGame() returns (uint256)",
+    "function getLastResult(address) view returns (uint256)",
+    "function playerBalance(address) view returns (uint256)",
+    "function claimRewards()",
+    "function getGameInfo() view returns (string)"
+];
+
+// Initialize
+async function initializeGame() {
+    setupGameVisuals();
+    connectBtn.addEventListener('click', connectWallet);
+    rollBtn.addEventListener('click', playGame);
     
-    // Base Sepolia network configuration
-    const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
-    const BASE_SEPOLIA_RPC_URL = 'https://sepolia.base.org';
-    
-    // DOM Elements
-    const tokenBalanceElement = document.getElementById('tokenBalance');
-    const gameBalanceElement = document.getElementById('gameBalance');
-    const walletAddressElement = document.getElementById('walletAddress');
-    const rollBtn = document.getElementById('rollBtn');
-    const connectBtn = document.getElementById('connectBtn');
-    const claimBtn = document.getElementById('claimBtn');
-    const gameModeElement = document.getElementById('gameMode');
-
-    let provider;
-    let signer;
-    let tokenContract;
-    let gameContract;
-    let userAddress;
-
-    // ABI for ERC20 token
-    const tokenAbi = [
-      "function balanceOf(address) view returns (uint256)",
-      "function transfer(address to, uint256 amount) returns (bool)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)",
-      "function approve(address spender, uint256 amount) returns (bool)"
-    ];
-
-    // ABI for game contract
-    const gameAbi = [
-      "function playGame() returns (uint256)",
-      "function getLastResult(address) view returns (uint256)",
-      "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
-      "function claimRewards()",
-      "function getPlayerInfo(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance, uint256 lastResult)"
-    ];
-
-    // Initialize the game
-    async function initializeGame() {
-      console.log('Initializing Base Cube Game...');
-      
-      setupGameVisuals();
-      setupWalletConnection();
-      
-      // Check if wallet is already connected
-      if (typeof window.ethereum !== 'undefined') {
+    if (typeof window.ethereum !== 'undefined') {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          await initializeWallet();
-        }
-      }
+        if (accounts.length > 0) await initializeWallet();
     }
+}
 
-    function setupGameVisuals() {
-      const pixelBg = document.getElementById('pixelBg');
-      const pixelCount = 1600;
-      
-      for (let i = 0; i < pixelCount; i++) {
+function setupGameVisuals() {
+    const pixelBg = document.getElementById('pixelBg');
+    for (let i = 0; i < 1600; i++) {
         const pixel = document.createElement('div');
         pixel.classList.add('pixel');
         pixel.style.animationDelay = `${Math.random() * 15}s`;
         pixel.style.animationDuration = `${10 + Math.random() * 8}s`;
         pixelBg.appendChild(pixel);
-      }
-
-      const cube = document.getElementById('cube');
-      cube.style.opacity = '0';
-      cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
-      
-      setTimeout(() => {
-        cube.style.transition = 'all 1.2s ease-out';
-        cube.style.opacity = '1';
-        cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(1)';
-      }, 300);
     }
+}
 
-    function setupWalletConnection() {
-      connectBtn.addEventListener('click', connectWallet);
-      claimBtn.addEventListener('click', claimRewards);
-    }
-
-    async function connectWallet() {
-      try {
+async function connectWallet() {
+    try {
         if (typeof window.ethereum === 'undefined') {
-          showTransactionStatus('Please install MetaMask!');
-          return;
+            alert('Please install MetaMask!');
+            return;
         }
 
-        showTransactionStatus('Connecting wallet...');
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         await initializeWallet();
         
-      } catch (error) {
-        console.error('Error connecting wallet:', error);
-        showTransactionStatus('Error: ' + (error.message || 'User rejected connection'));
-      }
+    } catch (error) {
+        alert('Error connecting: ' + error.message);
     }
+}
 
-    async function initializeWallet() {
-      try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        
-        if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
-          await switchToBaseSepolia();
-          return;
+async function initializeWallet() {
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    
+    if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
+            });
+        } catch (error) {
+            if (error.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: BASE_SEPOLIA_CHAIN_ID,
+                        chainName: 'Base Sepolia',
+                        rpcUrls: ['https://sepolia.base.org'],
+                        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                        blockExplorerUrls: ['https://sepolia.basescan.org'],
+                    }],
+                });
+            }
         }
-
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        
-        // Initialize contracts
-        tokenContract = new ethers.Contract(0xBEDe39E8c95E8FAFe1cdb0c256D35A2c894180fb, tokenAbi, signer);
-        gameContract = new ethers.Contract(0x79f550C69a2263051b17Eea301aFc97D8617132F, gameAbi, signer);
-        
-        // Update UI
-        connectBtn.textContent = 'Connected';
-        connectBtn.classList.add('connected');
-        walletAddressElement.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-        rollBtn.disabled = false;
-        
-        // Load balances
-        await loadBalances();
-        
-        showTransactionStatus('Wallet connected! On-chain mode active.');
-        
-        // Set up event listeners
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
-        
-      } catch (error) {
-        console.error('Error initializing wallet:', error);
-        showTransactionStatus('Error: ' + error.message);
-      }
+        return;
     }
 
-    async function switchToBaseSepolia() {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    
+    tokenContract = new ethers.Contract(0xBEDe39E8c95E8FAFe1cdb0c256D35A2c894180fb, tokenAbi, signer);
+    gameContract = new ethers.Contract(0x8b6f5B47109E41476A48D8Bc902A3A405a99BBAB, gameAbi, signer);
+    
+    connectBtn.textContent = 'Connected';
+    connectBtn.classList.add('connected');
+    walletAddressElement.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+    rollBtn.disabled = false;
+    
+    await loadBalance();
+    showStatus('✅ Wallet connected! Ready to play.');
+}
+
+async function loadBalance() {
+    try {
+        const balance = await tokenContract.balanceOf(userAddress);
+        const decimals = await tokenContract.decimals();
+        const formatted = parseFloat(ethers.utils.formatUnits(balance, decimals));
+        tokenBalanceElement.textContent = formatted.toFixed(2);
+    } catch (error) {
+        console.log("Balance load error:", error);
+    }
+}
+
+async function playGame() {
+    if (!gameContract) return;
+    
+    rollBtn.disabled = true;
+    showStatus('🎲 Rolling cube...');
+    
+    try {
+        // Animate cube first
+        await animateCube();
+        
+        // Then send transaction
+        showStatus('🔄 Sending transaction...');
+        
+        const tx = await gameContract.playGame({
+            gasLimit: 300000 // Set gas limit to avoid estimation issues
         });
-      } catch (switchError) {
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: BASE_SEPOLIA_CHAIN_ID,
-              chainName: 'Base Sepolia',
-              rpcUrls: [BASE_SEPOLIA_RPC_URL],
-              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-              blockExplorerUrls: ['https://sepolia.basescan.org'],
-            }],
-          });
-        }
-      }
-    }
-
-    async function loadBalances() {
-      try {
-        if (signer && tokenContract && gameContract) {
-          // Load token balance
-          const tokenBalance = await tokenContract.balanceOf(userAddress);
-          const decimals = await tokenContract.decimals();
-          const formattedBalance = parseFloat(ethers.utils.formatUnits(tokenBalance, decimals));
-          tokenBalanceElement.textContent = formattedBalance.toFixed(2);
-          
-          // Load game balance
-          const playerInfo = await gameContract.getPlayerInfo(userAddress);
-          const gameBalance = parseFloat(ethers.utils.formatUnits(playerInfo.balance, decimals));
-          gameBalanceElement.textContent = gameBalance.toFixed(2);
-          
-          // Enable claim button if there are rewards
-          claimBtn.disabled = gameBalance <= 0;
-        }
-      } catch (error) {
-        console.error("Error loading balances:", error);
-      }
-    }
-
-    function handleAccountsChanged(accounts) {
-      if (accounts.length === 0) {
-        disconnectWallet();
-      } else {
-        userAddress = accounts[0];
-        walletAddressElement.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-        loadBalances();
-      }
-    }
-
-    function handleChainChanged(chainId) {
-      window.location.reload();
-    }
-
-    function disconnectWallet() {
-      connectBtn.textContent = 'Connect Wallet';
-      connectBtn.classList.remove('connected');
-      walletAddressElement.textContent = 'Not connected';
-      tokenBalanceElement.textContent = '0';
-      gameBalanceElement.textContent = '0';
-      rollBtn.disabled = true;
-      claimBtn.disabled = true;
-      userAddress = null;
-      showTransactionStatus('Wallet disconnected');
-    }
-
-    async function claimRewards() {
-      try {
-        claimBtn.disabled = true;
-        showTransactionStatus('Claiming rewards...');
         
-        const tx = await gameContract.claimRewards();
-        showTransactionStatus('Transaction submitted...');
+        showStatus('⏳ Waiting for confirmation...');
+        await tx.wait();
         
-        const receipt = await tx.wait();
-        console.log('Claim successful:', receipt);
-        
-        showTransactionStatus('🎉 Rewards claimed successfully!');
-        await loadBalances();
-        
-      } catch (error) {
-        console.error('Error claiming rewards:', error);
-        showTransactionStatus('Error claiming rewards: ' + error.message);
-        claimBtn.disabled = false;
-      }
-    }
-
-    function showTransactionStatus(message) {
-      const existingStatus = document.querySelector('.transaction-status');
-      if (existingStatus) existingStatus.remove();
-      
-      const status = document.createElement('div');
-      status.className = 'transaction-status';
-      status.textContent = message;
-      document.body.appendChild(status);
-      
-      setTimeout(() => status.remove(), 5000);
-    }
-
-    // Game cube faces mapping to contract results
-    const faceMapping = {
-      1: '🏆', // 5 tokens
-      2: '❌', // Lose
-      3: '💎', // 3 tokens  
-      4: '⭐', // 1 token
-      5: '❌', // Lose
-      6: '❌'  // Lose
-    };
-
-    const cube = document.getElementById('cube');
-    const firework = document.getElementById('firework');
-    
-    let isSpinning = false;
-    
-    const stopPositions = [
-      { x: 0, y: 0, z: 0, symbol: '🏆' },
-      { x: 0, y: 180, z: 0, symbol: '❌' },
-      { x: 90, y: 0, z: 0, symbol: '❌' },
-      { x: -90, y: 0, z: 0, symbol: '❌' },
-      { x: 0, y: 90, z: 0, symbol: '💎' },
-      { x: 0, y: -90, z: 0, symbol: '⭐' }
-    ];
-    
-    function createFirework(x, y) {
-      const colors = ['#0052FF', '#0070FF', '#FFFFFF', '#0088FF', '#E6F0FF', '#B3D4FF'];
-      
-      for (let i = 0; i < 60; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 80 + Math.random() * 120;
-        const tx = Math.cos(angle) * distance;
-        const ty = Math.sin(angle) * distance;
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const size = 3 + Math.random() * 4;
-        const duration = 1 + Math.random() * 0.5;
-        
-        particle.style.left = `${x}px`;
-        particle.style.top = `${y}px`;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.background = color;
-        particle.style.setProperty('--tx', `${tx}px`);
-        particle.style.setProperty('--ty', `${ty}px`);
-        particle.style.animationDuration = `${duration}s`;
-        
-        firework.appendChild(particle);
-        setTimeout(() => particle.remove(), duration * 1000);
-      }
-    }
-    
-    function createVictoryFireworks() {
-      const positions = [
-        [window.innerWidth * 0.1, window.innerHeight * 0.1],
-        [window.innerWidth * 0.9, window.innerHeight * 0.1],
-        [window.innerWidth * 0.1, window.innerHeight * 0.9],
-        [window.innerWidth * 0.9, window.innerHeight * 0.9],
-        [window.innerWidth * 0.5, window.innerHeight * 0.1],
-        [window.innerWidth * 0.5, window.innerHeight * 0.9],
-        [window.innerWidth * 0.1, window.innerHeight * 0.5],
-        [window.innerWidth * 0.9, window.innerHeight * 0.5]
-      ];
-      
-      positions.forEach(([x, y], index) => {
-        setTimeout(() => createFirework(x, y), index * 150);
-      });
-    }
-    
-    async function processGameOnChain() {
-      try {
-        rollBtn.disabled = true;
-        showTransactionStatus('Playing game on-chain...');
-        
-        const tx = await gameContract.playGame();
-        showTransactionStatus('Transaction submitted...');
-        
-        const receipt = await tx.wait();
-        console.log('Game played:', receipt);
-        
-        // Get the result
+        // Check result
         const result = await gameContract.getLastResult(userAddress);
         const tokensWon = parseFloat(ethers.utils.formatUnits(result, 18));
         
         if (tokensWon > 0) {
-          showTransactionStatus(`🎉 You won ${tokensWon} $BASE tokens!`);
-          createVictoryFireworks();
+            showStatus(`🎉 You won ${tokensWon} BASE tokens!`);
+            createFireworks();
         } else {
-          showTransactionStatus('Better luck next time! ❌');
+            showStatus('😢 Better luck next time!');
         }
         
-        await loadBalances();
+        await loadBalance();
+        
+    } catch (error) {
+        console.error('Game error:', error);
+        if (error.code === 4001) {
+            showStatus('❌ Transaction cancelled');
+        } else {
+            showStatus('❌ Error: ' + error.message);
+        }
+    } finally {
         rollBtn.disabled = false;
-        
-      } catch (error) {
-        console.error('Error playing game:', error);
-        showTransactionStatus('Error: ' + error.message);
-        rollBtn.disabled = false;
-      }
     }
-    
-    function spinCube() {
-      if (isSpinning) return;
-      
-      isSpinning = true;
-      rollBtn.disabled = true;
-      
-      const startX = Math.random() * 360;
-      const startY = Math.random() * 360;
-      const finalPos = stopPositions[Math.floor(Math.random() * stopPositions.length)];
-      
-      let startTime = null;
-      const totalDuration = 4000;
-      const spinDuration = 3000;
-      
-      function animate(currentTime) {
-        if (!startTime) startTime = currentTime;
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / totalDuration, 1);
-        
-        if (progress < 0.75) {
-          const spinProgress = Math.min(elapsed / spinDuration, 1);
-          const easeOut = 1 - Math.pow(1 - spinProgress, 3);
-          const currentX = startX + (720 * easeOut);
-          const currentY = startY + (720 * easeOut);
-          cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-        } else {
-          const slowProgress = (progress - 0.75) / 0.25;
-          const easeInOut = slowProgress < 0.5 ? 
-            2 * slowProgress * slowProgress : 
-            1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
-          const currentX = finalPos.x * easeInOut;
-          const currentY = finalPos.y * easeInOut;
-          cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
-        }
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          cube.style.transform = `rotateX(${finalPos.x}deg) rotateY(${finalPos.y}deg)`;
-          
-          if (finalPos.symbol !== '❌') {
-            const face = cube.getElementsByClassName('face');
-            for (let f of face) {
-              if (f.textContent === finalPos.symbol) {
-                f.classList.add('win-glow');
-                setTimeout(() => f.classList.remove('win-glow'), 2000);
-                break;
-              }
-            }
-          }
-          
-          // Call on-chain game function
-          processGameOnChain();
-          isSpinning = false;
-        }
-      }
-      
-      requestAnimationFrame(animate);
-    }
-    
-    rollBtn.addEventListener('click', spinCube);
+}
 
-    // Initialize game
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeGame);
-    } else {
-      initializeGame();
+function animateCube() {
+    return new Promise((resolve) => {
+        const cube = document.getElementById('cube');
+        let rotation = 0;
+        
+        function animate() {
+            rotation += 20;
+            cube.style.transform = `rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+            
+            if (rotation < 720) {
+                requestAnimationFrame(animate);
+            } else {
+                resolve();
+            }
+        }
+        animate();
+    });
+}
+
+function createFireworks() {
+    const firework = document.getElementById('firework');
+    const colors = ['#0052FF', '#0070FF', '#FFFFFF'];
+    
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 50 + Math.random() * 100;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+        
+        particle.style.left = '50%';
+        particle.style.top = '50%';
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.setProperty('--tx', `${tx}px`);
+        particle.style.setProperty('--ty', `${ty}px`);
+        
+        firework.appendChild(particle);
+        setTimeout(() => particle.remove(), 1500);
     }
+}
+
+function showStatus(message) {
+    let status = document.querySelector('.transaction-status');
+    if (!status) {
+        status = document.createElement('div');
+        status.className = 'transaction-status';
+        document.body.appendChild(status);
+    }
+    status.textContent = message;
+    
+    setTimeout(() => {
+        if (status.parentNode) status.remove();
+    }, 5000);
+}
+
+// Initialize when ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeGame);
+} else {
+    initializeGame();
+}
   </script>
 </body>
 </html>

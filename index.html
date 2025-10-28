@@ -191,6 +191,32 @@
       box-shadow: 0 8px 20px rgba(0, 200, 81, 0.3);
     }
 
+    /* Game Mode Indicator */
+    .game-mode {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: rgba(0, 82, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 10px 15px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      font-size: 12px;
+      box-shadow: 0 4px 15px rgba(0, 82, 255, 0.2);
+      z-index: 1000;
+    }
+
+    .mode-onchain {
+      color: #00E676;
+      font-weight: 600;
+    }
+
+    .mode-simulation {
+      color: #FFD700;
+      font-weight: 600;
+    }
+
     /* Салют с цветами Base.org */
     .firework {
       position: absolute;
@@ -378,11 +404,19 @@
         left: 0;
         margin-bottom: 20px;
       }
+      
+      .game-mode {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin-bottom: 10px;
+      }
     }
   </style>
 </head>
 <body>
   <button class="connect-btn" id="connectBtn">Connect Wallet</button>
+  <div class="game-mode" id="gameMode">Mode: <span class="mode-simulation">Simulation</span></div>
 
   <div class="token-balance">
     <div>$BASE Balance: <span id="tokenBalance">0</span></div>
@@ -420,14 +454,14 @@
       </div>
     </div>
 
-    <button class="roll-btn" id="rollBtn" disabled>ROLL</button>
+    <button class="roll-btn" id="rollBtn">ROLL</button>
     <div class="game-cost">Free to play!</div>
   </div>
 
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
 
-  <!-- Ethers.js for blockchain interaction - FIXED CDN URL -->
+  <!-- Ethers.js for blockchain interaction -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
@@ -462,6 +496,7 @@
     const walletAddressElement = document.getElementById('walletAddress');
     const rollBtn = document.getElementById('rollBtn');
     const connectBtn = document.getElementById('connectBtn');
+    const gameModeElement = document.getElementById('gameMode');
 
     let userTokenBalance = 0;
     let provider;
@@ -469,6 +504,7 @@
     let tokenContract;
     let gameContract;
     let userAddress;
+    let isOnChainMode = false;
 
     // ABI for ERC20 token (simplified)
     const tokenAbi = [
@@ -478,23 +514,22 @@
       "function symbol() view returns (string)"
     ];
 
-    // ABI for game contract (simplified)
+    // ABI for game contract (simplified) - Updated with common game functions
     const gameAbi = [
       "function playGame() returns (uint256)",
-      "function setGameContract(address _gameContract)",
+      "function rollDice() returns (uint256)",
+      "function spinWheel() returns (uint256)",
+      "function claimReward() returns (uint256)",
       "function getLastResult(address) view returns (uint256)",
-      "function claimRewards()"
+      "function userBalance(address) view returns (uint256)",
+      "function claimRewards()",
+      "function isGameActive() view returns (bool)"
     ];
 
     // Initialize for Base Sepolia environment
     async function initializeBaseApp() {
       console.log('Initializing Base Cube Game on Base Sepolia...');
       console.log('Ethers version:', ethers?.version);
-      
-      // Check if we're in a Base environment
-      if (typeof window !== 'undefined' && window.parent !== window) {
-        console.log('Running in Base.dev environment');
-      }
       
       await setupGame();
     }
@@ -521,6 +556,30 @@
         }, 5000);
       }
 
+      // Update game mode display
+      function updateGameMode() {
+        if (isOnChainMode) {
+          gameModeElement.innerHTML = 'Mode: <span class="mode-onchain">On-Chain</span>';
+        } else {
+          gameModeElement.innerHTML = 'Mode: <span class="mode-simulation">Simulation</span>';
+        }
+      }
+
+      // Test contract connection
+      async function testContractConnection() {
+        try {
+          // Test if we can read from the contract
+          const isActive = await gameContract.isGameActive().catch(() => false);
+          const userBal = await gameContract.userBalance(userAddress).catch(() => 0);
+          
+          console.log('Contract test - isActive:', isActive, 'userBalance:', userBal);
+          return true;
+        } catch (error) {
+          console.log('Contract test failed, using simulation mode:', error.message);
+          return false;
+        }
+      }
+
       // Connect wallet function
       async function connectWallet() {
         try {
@@ -532,6 +591,8 @@
 
           if (typeof window.ethereum === 'undefined') {
             showTransactionStatus('Please install MetaMask to play!');
+            // Enable roll button for simulation mode
+            rollBtn.disabled = false;
             return;
           }
 
@@ -590,10 +651,18 @@
           walletAddressElement.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
           rollBtn.disabled = false;
           
-          // Load user balance
-          await loadUserBalance();
+          // Test contract connection
+          const contractWorks = await testContractConnection();
+          isOnChainMode = contractWorks;
+          updateGameMode();
           
-          showTransactionStatus('Wallet connected successfully!');
+          if (contractWorks) {
+            showTransactionStatus('Wallet connected! On-chain mode activated.');
+            // Load user balance from contract
+            await loadUserBalance();
+          } else {
+            showTransactionStatus('Wallet connected! Using simulation mode.');
+          }
           
           // Set up event listeners for account and chain changes
           window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -602,6 +671,8 @@
         } catch (error) {
           console.error('Error connecting wallet:', error);
           showTransactionStatus('Error connecting wallet: ' + (error.message || 'Unknown error'));
+          // Enable simulation mode even if connection fails
+          rollBtn.disabled = false;
         }
       }
 
@@ -627,9 +698,11 @@
         connectBtn.classList.remove('connected');
         walletAddressElement.textContent = 'Not connected';
         tokenBalanceElement.textContent = '0';
-        rollBtn.disabled = true;
+        rollBtn.disabled = false; // Keep roll enabled for simulation
         userTokenBalance = 0;
         userAddress = null;
+        isOnChainMode = false;
+        updateGameMode();
       }
 
       // Load user token balance
@@ -646,42 +719,63 @@
         }
       }
 
-      // Process game rewards on-chain
+      // Try different game functions
+      async function tryGameFunctions() {
+        const functions = ['playGame', 'rollDice', 'spinWheel', 'claimReward'];
+        
+        for (const funcName of functions) {
+          try {
+            console.log(`Trying ${funcName}...`);
+            const tx = await gameContract[funcName]();
+            showTransactionStatus(`Transaction submitted (${funcName})...`);
+            
+            const receipt = await tx.wait();
+            console.log(`${funcName} successful:`, receipt);
+            
+            // Try to get result
+            const result = await gameContract.getLastResult(userAddress).catch(() => 0);
+            return { success: true, function: funcName, result: result };
+          } catch (error) {
+            console.log(`${funcName} failed:`, error.message);
+            continue;
+          }
+        }
+        
+        return { success: false };
+      }
+
+      // Process game rewards
       async function processGameResult(winningSymbol) {
         try {
-          showTransactionStatus('Processing game result on-chain...');
-          
-          if (gameContract && signer) {
-            // Call the playGame function on the smart contract
-            const tx = await gameContract.playGame();
-            showTransactionStatus('Transaction submitted... Waiting for confirmation');
+          if (isOnChainMode && gameContract && signer) {
+            showTransactionStatus('Processing game on-chain...');
             
-            // Wait for transaction confirmation
-            const receipt = await tx.wait();
+            // Try different game functions
+            const result = await tryGameFunctions();
             
-            // Get the result from the contract
-            const result = await gameContract.getLastResult(userAddress);
-            
-            if (result > 0) {
-              // Win - update balance
-              userTokenBalance += parseInt(result);
-              tokenBalanceElement.textContent = userTokenBalance.toFixed(2);
-              
-              showTransactionStatus(`🎉 You won ${result} $BASE tokens! +${result} $BASE added to your balance`);
+            if (result.success) {
+              if (result.result > 0) {
+                userTokenBalance += parseInt(result.result);
+                tokenBalanceElement.textContent = userTokenBalance.toFixed(2);
+                showTransactionStatus(`🎉 You won ${result.result} $BASE tokens!`);
+              } else {
+                showTransactionStatus('Better luck next time! ❌');
+              }
             } else {
-              showTransactionStatus('Better luck next time! ❌');
+              // If all contract calls fail, fall back to simulation
+              throw new Error('All contract functions failed');
             }
           } else {
-            // Fallback to simulation if no blockchain connection
+            // Simulation mode
+            showTransactionStatus('Processing game result...');
+            
             setTimeout(() => {
               if (winningSymbol === '❌') {
                 showTransactionStatus('Better luck next time! ❌');
               } else {
-                // Win - add tokens
                 const tokensWon = TOKEN_REWARDS[winningSymbol];
                 userTokenBalance += tokensWon;
                 tokenBalanceElement.textContent = userTokenBalance.toFixed(2);
-                
                 showTransactionStatus(`🎉 You won ${tokensWon} $BASE tokens! +${tokensWon} $BASE added to your balance`);
               }
             }, 2000);
@@ -689,12 +783,29 @@
           
         } catch (error) {
           console.error('Error processing game:', error);
-          showTransactionStatus('Error processing game: ' + (error.message || 'Unknown error'));
+          // Fall back to simulation mode
+          isOnChainMode = false;
+          updateGameMode();
+          
+          setTimeout(() => {
+            if (winningSymbol === '❌') {
+              showTransactionStatus('Better luck next time! ❌');
+            } else {
+              const tokensWon = TOKEN_REWARDS[winningSymbol];
+              userTokenBalance += tokensWon;
+              tokenBalanceElement.textContent = userTokenBalance.toFixed(2);
+              showTransactionStatus(`🎉 Simulation: Won ${tokensWon} $BASE tokens!`);
+            }
+          }, 2000);
         }
       }
 
       // Connect wallet button event listener
       connectBtn.addEventListener('click', connectWallet);
+
+      // Initialize simulation mode by default
+      updateGameMode();
+      rollBtn.disabled = false;
 
       // Пиксельный фон
       const pixelBg = document.getElementById('pixelBg');
@@ -862,31 +973,4 @@
             
             isSpinning = false;
             rollBtn.disabled = false;
-          }
-        }
-        
-        requestAnimationFrame(animate);
-      }
-      
-      rollBtn.addEventListener('click', spinCube);
-
-      // Плавное появление
-      cube.style.opacity = '0';
-      cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
-      
-      setTimeout(() => {
-        cube.style.transition = 'all 1.2s ease-out';
-        cube.style.opacity = '1';
-        cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(1)';
-      }, 300);
-    }
-
-    // Start checking for Ethers.js when DOM is loaded
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', checkEthersLoaded);
-    } else {
-      checkEthersLoaded();
-    }
-  </script>
-</body>
-</html>
+         

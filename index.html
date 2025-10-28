@@ -392,7 +392,7 @@
       { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left - Lose
     ];
 
-    // Complete ABI for both contracts
+    // Complete ABI for both contracts - FIXED: playGame doesn't take parameters
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
       "function decimals() view returns (uint8)",
@@ -402,7 +402,7 @@
     ];
 
     const gameAbi = [
-      "function playGame(uint256 prediction) returns (uint256)",
+      "function playGame() returns (uint256)",
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
       "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
@@ -416,7 +416,8 @@
       isRolling: false,
       lastResult: 0,
       gameBalance: 0,
-      walletBalance: 0
+      walletBalance: 0,
+      lastPrediction: 0
     };
 
     async function initializeGame() {
@@ -638,6 +639,9 @@
         const randomFaceIndex = Math.floor(Math.random() * cubeFaces.length);
         const selectedFace = cubeFaces[randomFaceIndex];
         
+        // Store the prediction for later comparison
+        gameState.lastPrediction = selectedFace.reward;
+        
         // STEP 2: Animate cube to show the random result
         await animateCubeToFace(selectedFace);
         
@@ -645,9 +649,11 @@
         showStatus(`🎯 Cube shows: ${selectedFace.symbol} - ${selectedFace.reward > 0 ? selectedFace.reward + ' tokens!' : 'No win'}`);
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // STEP 4: Now send the transaction to play game on-chain with the prediction
+        // STEP 4: Now send the transaction to play game on-chain
         showStatus('🔄 Playing game on-chain...');
-        const tx = await gameContract.playGame(selectedFace.reward, { gasLimit: 200000 });
+        
+        // FIXED: Call playGame without parameters
+        const tx = await gameContract.playGame({ gasLimit: 200000 });
         
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();

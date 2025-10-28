@@ -407,8 +407,8 @@
   
   <script>
     // Contract addresses
-    const TOKEN_CONTRACT_ADDRESS = "0x4099884D7F81DbC19ec48623d29bb0B12CF3ba8C";
-    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";
+    const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
+    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";  // Updated to new contract
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -428,9 +428,9 @@
     const cubeFaces = [
       { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
       { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
-      { symbol: '💎', reward: 3, position: { x: 0, y: -90 } },    // Right - 3 tokens WIN
+      { symbol: '💎', reward: 3, position: { x: 0, y: 270 } },    // Right - 3 tokens WIN (changed -90 to 270 for positive rotation)
       { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Top - 0 tokens LOSE
+      { symbol: '❌', reward: 0, position: { x: 270, y: 0 } },    // Top - 0 tokens LOSE (changed -90 to 270)
       { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
     ];
 
@@ -447,11 +447,10 @@
       "function playGame() returns (uint256)",
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
-      "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
       "function claimRewards()",
-      "function rewards(uint256) view returns (uint256)",
-      "function token() view returns (address)"
-    ];
+      "function token() view returns (address)",
+      "event GamePlayed(address indexed player, uint256 reward)"
+    ];  // Trimmed unused functions like players() and rewards() to match new contract
 
     // Game state
     const gameState = {
@@ -681,18 +680,35 @@
       showStatus('🎲 Rolling cube...');
 
       try {
-        // STEP 1: First play the game on-chain to get the REAL result
+        // STEP 1: Play the game on-chain
         showStatus('🔄 Playing game on-chain...');
         const tx = await gameContract.playGame({ gasLimit: 200000 });
         
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
-        // STEP 2: Get the ACTUAL on-chain result
-        const result = await gameContract.getLastResult(userAddress);
-        const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
+        // STEP 2: Get the reward from the event (more reliable than view call)
+        let reward = ethers.BigNumber.from(0);
+        for (const log of receipt.logs) {
+          try {
+            const parsedLog = gameContract.interface.parseLog(log);
+            if (parsedLog.name === 'GamePlayed' && parsedLog.args.player.toLowerCase() === userAddress.toLowerCase()) {
+              reward = parsedLog.args.reward;
+              break;
+            }
+          } catch (e) {
+            // Ignore non-matching logs
+          }
+        }
         
-        // STEP 3: Show what the contract ACTUALLY gave
+        if (reward.eq(0)) {
+          // Fallback to view call if event not found (unlikely)
+          reward = await gameContract.getLastResult(userAddress);
+        }
+        
+        const tokensWon = parseFloat(ethers.utils.formatUnits(reward, tokenDecimals));
+        
+        // STEP 3: Determine symbol based on tokens won
         let actualSymbol = '❌';
         let actualReward = 0;
         
@@ -710,19 +726,22 @@
           actualReward = 0;
         }
         
-        // STEP 4: Find the matching face for the actual result
+        // STEP 4: Find matching face
         let matchingFaces = cubeFaces.filter(face => face.symbol === actualSymbol && face.reward === actualReward);
         let selectedFace = matchingFaces[Math.floor(Math.random() * matchingFaces.length)];
         
-        // If no match, pick random
+        if (!selectedFace) {
+          selectedFace = cubeFaces.find(face => face.symbol === actualSymbol);
+        }
+        
         if (!selectedFace) {
           selectedFace = cubeFaces[Math.floor(Math.random() * cubeFaces.length)];
         }
         
-        // STEP 5: Animate cube to show what was ACTUALLY won
+        // STEP 5: Animate to selected face
         await animateCubeToFace(selectedFace);
         
-        // STEP 6: Show EXACT result message
+        // STEP 6: Show result message
         if (tokensWon > 0) {
           let rewardMessage = '';
           
@@ -762,8 +781,12 @@
     function animateCubeToFace(face) {
       return new Promise((resolve) => {
         const cube = document.getElementById('cube');
-        const targetX = face.position.x;
-        const targetY = face.position.y;
+        let targetX = face.position.x % 360;
+        let targetY = face.position.y % 360;
+        
+        // Normalize to positive
+        if (targetX < 0) targetX += 360;
+        if (targetY < 0) targetY += 360;
         
         // Add some random spins before landing on target
         const spins = 3 + Math.random() * 2; // 3-5 spins
@@ -792,8 +815,15 @@
               2 * slowProgress * slowProgress : 
               1 - Math.pow(-2 * slowProgress + 2, 2) / 2;
             
-            currentX = totalRotation + (targetX - (totalRotation % 360)) * easeInOut;
-            currentY = totalRotation + (targetY - (totalRotation % 360)) * easeInOut;
+            const adjustX = targetX - (totalRotation % 360);
+            const adjustY = targetY - (totalRotation % 360);
+            
+            // Normalize adjustment to shortest rotation path (-180 to 180)
+            const normAdjustX = ((adjustX + 180) % 360) - 180;
+            const normAdjustY = ((adjustY + 180) % 360) - 180;
+            
+            currentX = totalRotation + normAdjustX * easeInOut;
+            currentY = totalRotation + normAdjustY * easeInOut;
           }
           
           cube.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`;
@@ -801,8 +831,10 @@
           if (progress < 1) {
             requestAnimationFrame(animate);
           } else {
-            // Final position
-            cube.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg)`;
+            // Final position, normalized
+            const finalX = targetX + Math.floor(totalRotation / 360) * 360;
+            const finalY = targetY + Math.floor(totalRotation / 360) * 360;
+            cube.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
             
             // Add win glow if it's a winning face
             if (face.reward > 0) {

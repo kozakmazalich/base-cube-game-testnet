@@ -141,6 +141,23 @@
       background: linear-gradient(135deg, #00C851 0%, #00E676 100%);
     }
 
+    .claim-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+      color: black;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .claim-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .firework {
       position: absolute;
       pointer-events: none;
@@ -267,40 +284,18 @@
       max-width: 400px;
     }
 
-    .address-input {
+    .debug-info {
       position: absolute;
-      top: 80px;
+      bottom: 80px;
       left: 20px;
-      background: rgba(0, 82, 255, 0.1);
+      background: rgba(255, 0, 0, 0.1);
       backdrop-filter: blur(10px);
       border-radius: 16px;
       padding: 15px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 0, 0, 0.3);
       color: white;
       font-size: 12px;
-      box-shadow: 0 4px 15px rgba(0, 82, 255, 0.2);
-      z-index: 1000;
-    }
-
-    .address-input input {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: white;
-      font-size: 12px;
-      width: 300px;
-      margin: 5px 0;
-    }
-
-    .address-input button {
-      background: linear-gradient(135deg, #0052FF, #0070FF);
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      color: white;
-      cursor: pointer;
-      margin-top: 5px;
+      max-width: 300px;
     }
 
     @media (max-width: 768px) {
@@ -310,23 +305,17 @@
       .front, .back, .right, .left, .top, .bottom { transform: translateZ(75px); }
       .rewards-table { min-width: 200px; padding: 15px; }
       .connect-btn { position: relative; top: 0; left: 0; margin-bottom: 20px; }
-      .address-input { position: relative; top: 0; left: 0; margin-bottom: 10px; }
     }
   </style>
 </head>
 <body>
   <button class="connect-btn" id="connectBtn">Connect Wallet</button>
-  
-  <div class="address-input">
-    <div>Contract Addresses:</div>
-    <input type="text" id="tokenAddress" placeholder="Token Contract Address (0x...)" value="0x3C307A3dDfB4B2B1f67eBD5E17A751488572F72c">
-    <input type="text" id="gameAddress" placeholder="Game Contract Address (0x...)" value="0x6B7CA86362c0C3BE01B23Ef03a2c2Cb17692c0f4">
-    <button onclick="updateAddresses()">Update Addresses</button>
-  </div>
 
   <div class="token-balance">
     <div>$BASE Balance: <span id="tokenBalance">0</span></div>
-    <div class="balance">Wallet: <span id="walletAddress">Not connected</span></div>
+    <div class="balance">Game Balance: <span id="gameBalance">0</span></div>
+    <div class="balance">Last Win: <span id="lastWin">0</span></div>
+    <button class="claim-btn" id="claimBtn" disabled>Claim Rewards</button>
   </div>
 
   <div class="rewards-table">
@@ -367,320 +356,363 @@
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
 
+  <div class="debug-info" id="debugInfo">
+    Contract Status: Checking...
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <script>
-    // Contract addresses - WILL BE UPDATED BY USER
-    let TOKEN_CONTRACT_ADDRESS = "0xBEDe39E8c95E8FAFe1cdb0c256D35A2c894180fb";
-    let GAME_CONTRACT_ADDRESS = "0x8b6f5B47109E41476A48D8Bc902A3A405a99BBAB";
+    // Your contract addresses
+    const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
+    const GAME_CONTRACT_ADDRESS = "0xC6ead70fAB681e845f746cc2Aa696967608e3a8C";
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
     // DOM Elements
     const tokenBalanceElement = document.getElementById('tokenBalance');
+    const gameBalanceElement = document.getElementById('gameBalance');
+    const lastWinElement = document.getElementById('lastWin');
     const walletAddressElement = document.getElementById('walletAddress');
     const rollBtn = document.getElementById('rollBtn');
     const connectBtn = document.getElementById('connectBtn');
-    const tokenAddressInput = document.getElementById('tokenAddress');
-    const gameAddressInput = document.getElementById('gameAddress');
+    const claimBtn = document.getElementById('claimBtn');
+    const debugInfo = document.getElementById('debugInfo');
 
     let provider, signer, tokenContract, gameContract, userAddress;
 
-    // Simple ABI
+    // Complete ABI for both contracts
     const tokenAbi = [
-        "function balanceOf(address) view returns (uint256)",
-        "function decimals() view returns (uint8)",
-        "function symbol() view returns (string)"
+      "function balanceOf(address) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+      "function symbol() view returns (string)",
+      "function transfer(address to, uint256 amount) returns (bool)",
+      "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
     const gameAbi = [
-        "function playGame() returns (uint256)",
-        "function getLastResult(address) view returns (uint256)",
-        "function playerBalance(address) view returns (uint256)",
-        "function claimRewards()"
+      "function playGame() returns (uint256)",
+      "function getLastResult(address) view returns (uint256)",
+      "function playerBalance(address) view returns (uint256)",
+      "function players(address) view returns (uint256 lastPlayed, uint256 totalWins, uint256 totalTokensWon, uint256 balance)",
+      "function claimRewards()",
+      "function rewards(uint256) view returns (uint256)",
+      "function token() view returns (address)"
     ];
 
-    function updateAddresses() {
-        TOKEN_CONTRACT_ADDRESS = tokenAddressInput.value.trim();
-        GAME_CONTRACT_ADDRESS = gameAddressInput.value.trim();
-        
-        // Validate addresses
-        if (!ethers.utils.isAddress(TOKEN_CONTRACT_ADDRESS)) {
-            showStatus('❌ Invalid token address');
-            return;
-        }
-        if (!ethers.utils.isAddress(GAME_CONTRACT_ADDRESS)) {
-            showStatus('❌ Invalid game address');
-            return;
-        }
-        
-        showStatus('✅ Addresses updated!');
-        
-        // Re-initialize contracts if wallet is connected
-        if (userAddress) {
-            initializeContracts();
-        }
-    }
-
     async function initializeGame() {
-        setupGameVisuals();
-        connectBtn.addEventListener('click', connectWallet);
-        
-        // Check if wallet is already connected
-        if (typeof window.ethereum !== 'undefined') {
-            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-            if (accounts.length > 0) {
-                await initializeWallet();
-            }
+      setupGameVisuals();
+      connectBtn.addEventListener('click', connectWallet);
+      claimBtn.addEventListener('click', claimRewards);
+      
+      if (typeof window.ethereum !== 'undefined') {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          await initializeWallet();
         }
+      }
+      
+      updateDebugInfo('Ready to connect wallet');
     }
 
     function setupGameVisuals() {
-        const pixelBg = document.getElementById('pixelBg');
-        for (let i = 0; i < 1600; i++) {
-            const pixel = document.createElement('div');
-            pixel.classList.add('pixel');
-            pixel.style.animationDelay = `${Math.random() * 15}s`;
-            pixel.style.animationDuration = `${10 + Math.random() * 8}s`;
-            pixelBg.appendChild(pixel);
-        }
+      const pixelBg = document.getElementById('pixelBg');
+      for (let i = 0; i < 1600; i++) {
+        const pixel = document.createElement('div');
+        pixel.classList.add('pixel');
+        pixel.style.animationDelay = `${Math.random() * 15}s`;
+        pixel.style.animationDuration = `${10 + Math.random() * 8}s`;
+        pixelBg.appendChild(pixel);
+      }
 
-        const cube = document.getElementById('cube');
-        cube.style.opacity = '0';
-        cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
-        
-        setTimeout(() => {
-            cube.style.transition = 'all 1.2s ease-out';
-            cube.style.opacity = '1';
-            cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(1)';
-        }, 300);
+      const cube = document.getElementById('cube');
+      cube.style.opacity = '0';
+      cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(0.8)';
+      
+      setTimeout(() => {
+        cube.style.transition = 'all 1.2s ease-out';
+        cube.style.opacity = '1';
+        cube.style.transform = 'rotateX(15deg) rotateY(15deg) scale(1)';
+      }, 300);
     }
 
     async function connectWallet() {
-        try {
-            if (typeof window.ethereum === 'undefined') {
-                showStatus('Please install MetaMask!');
-                return;
-            }
-
-            showStatus('Connecting wallet...');
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            await initializeWallet();
-            
-        } catch (error) {
-            showStatus('Error: ' + error.message);
+      try {
+        if (typeof window.ethereum === 'undefined') {
+          showStatus('Please install MetaMask!');
+          return;
         }
+
+        showStatus('Connecting wallet...');
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await initializeWallet();
+        
+      } catch (error) {
+        showStatus('Error: ' + error.message);
+      }
     }
 
     async function initializeWallet() {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        
-        if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
-            await switchToBaseSepolia();
-            return;
-        }
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        await switchToBaseSepolia();
+        return;
+      }
 
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        
-        await initializeContracts();
-        
-        connectBtn.textContent = 'Connected';
-        connectBtn.classList.add('connected');
-        walletAddressElement.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-        rollBtn.disabled = false;
-        
-        showStatus('✅ Wallet connected! Ready to play.');
-        
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+      
+      // Initialize contracts
+      tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, tokenAbi, signer);
+      gameContract = new ethers.Contract(GAME_CONTRACT_ADDRESS, gameAbi, signer);
+      
+      // Test contract connections
+      await testContracts();
+      
+      connectBtn.textContent = 'Connected';
+      connectBtn.classList.add('connected');
+      rollBtn.disabled = false;
+      
+      await loadBalances();
+      
+      showStatus('✅ Wallet connected! Ready to play.');
+      updateDebugInfo('Contracts connected successfully');
+      
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
     }
 
-    async function initializeContracts() {
-        try {
-            // Validate addresses before creating contracts
-            if (!ethers.utils.isAddress(TOKEN_CONTRACT_ADDRESS) || !ethers.utils.isAddress(GAME_CONTRACT_ADDRESS)) {
-                showStatus('❌ Please set valid contract addresses');
-                return;
-            }
-
-            tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, tokenAbi, signer);
-            gameContract = new ethers.Contract(GAME_CONTRACT_ADDRESS, gameAbi, signer);
-            
-            // Test contracts are accessible
-            await tokenContract.decimals();
-            await gameContract.getLastResult(userAddress);
-            
-            await loadBalance();
-            
-        } catch (error) {
-            console.error('Contract init error:', error);
-            showStatus('❌ Cannot connect to contracts. Check addresses.');
+    async function testContracts() {
+      try {
+        // Test token contract
+        const tokenSymbol = await tokenContract.symbol();
+        const tokenDecimals = await tokenContract.decimals();
+        const gameToken = await gameContract.token();
+        
+        updateDebugInfo(`Token: ${tokenSymbol}, Decimals: ${tokenDecimals}`);
+        console.log('Game token address:', gameToken);
+        
+        // Check game contract balance
+        const gameBalance = await tokenContract.balanceOf(GAME_CONTRACT_ADDRESS);
+        const gameBalanceFormatted = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals));
+        updateDebugInfo(`Game contract has ${gameBalanceFormatted} tokens`);
+        
+        if (gameBalanceFormatted < 10) {
+          showStatus('⚠️ Game contract low on tokens');
         }
+        
+      } catch (error) {
+        console.error('Contract test error:', error);
+        updateDebugInfo('Error testing contracts');
+      }
     }
 
     async function switchToBaseSepolia() {
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
-            });
-        } catch (switchError) {
-            if (switchError.code === 4902) {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: BASE_SEPOLIA_CHAIN_ID,
-                        chainName: 'Base Sepolia',
-                        rpcUrls: ['https://sepolia.base.org'],
-                        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                        blockExplorerUrls: ['https://sepolia.basescan.org'],
-                    }],
-                });
-            }
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: BASE_SEPOLIA_CHAIN_ID,
+              chainName: 'Base Sepolia',
+              rpcUrls: ['https://sepolia.base.org'],
+              nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+              blockExplorerUrls: ['https://sepolia.basescan.org'],
+            }],
+          });
         }
+      }
     }
 
-    async function loadBalance() {
-        try {
-            const balance = await tokenContract.balanceOf(userAddress);
-            const decimals = await tokenContract.decimals();
-            const formatted = parseFloat(ethers.utils.formatUnits(balance, decimals));
-            tokenBalanceElement.textContent = formatted.toFixed(2);
-        } catch (error) {
-            console.log("Balance error:", error);
-        }
+    async function loadBalances() {
+      try {
+        const tokenDecimals = await tokenContract.decimals();
+        
+        // Load wallet token balance
+        const walletBalance = await tokenContract.balanceOf(userAddress);
+        const walletBalanceFormatted = parseFloat(ethers.utils.formatUnits(walletBalance, tokenDecimals));
+        tokenBalanceElement.textContent = walletBalanceFormatted.toFixed(2);
+        
+        // Load game balance for user
+        const gameBalance = await gameContract.playerBalance(userAddress);
+        const gameBalanceFormatted = parseFloat(ethers.utils.formatUnits(gameBalance, tokenDecimals));
+        gameBalanceElement.textContent = gameBalanceFormatted.toFixed(2);
+        
+        // Load last result
+        const lastResult = await gameContract.getLastResult(userAddress);
+        const lastResultFormatted = parseFloat(ethers.utils.formatUnits(lastResult, tokenDecimals));
+        lastWinElement.textContent = lastResultFormatted.toFixed(2);
+        
+        // Enable claim button if there are rewards
+        claimBtn.disabled = gameBalanceFormatted <= 0;
+        
+      } catch (error) {
+        console.error('Balance load error:', error);
+      }
     }
 
     function handleAccountsChanged(accounts) {
-        if (accounts.length === 0) {
-            disconnectWallet();
-        } else {
-            userAddress = accounts[0];
-            walletAddressElement.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-            loadBalance();
-        }
+      if (accounts.length === 0) {
+        disconnectWallet();
+      } else {
+        userAddress = accounts[0];
+        loadBalances();
+      }
     }
 
     function handleChainChanged(chainId) {
-        window.location.reload();
+      window.location.reload();
     }
 
     function disconnectWallet() {
-        connectBtn.textContent = 'Connect Wallet';
-        connectBtn.classList.remove('connected');
-        walletAddressElement.textContent = 'Not connected';
-        tokenBalanceElement.textContent = '0';
-        rollBtn.disabled = true;
-        userAddress = null;
-        showStatus('Wallet disconnected');
+      connectBtn.textContent = 'Connect Wallet';
+      connectBtn.classList.remove('connected');
+      tokenBalanceElement.textContent = '0';
+      gameBalanceElement.textContent = '0';
+      lastWinElement.textContent = '0';
+      rollBtn.disabled = true;
+      claimBtn.disabled = true;
+      userAddress = null;
+      showStatus('Wallet disconnected');
+    }
+
+    async function claimRewards() {
+      try {
+        claimBtn.disabled = true;
+        showStatus('Claiming rewards...');
+        
+        const tx = await gameContract.claimRewards({ gasLimit: 100000 });
+        showStatus('Transaction submitted...');
+        
+        const receipt = await tx.wait();
+        console.log('Claim successful:', receipt);
+        
+        showStatus('🎉 Rewards claimed successfully!');
+        await loadBalances();
+        
+      } catch (error) {
+        console.error('Error claiming rewards:', error);
+        showStatus('Error claiming: ' + error.message);
+        claimBtn.disabled = false;
+      }
     }
 
     rollBtn.addEventListener('click', async () => {
-        if (!gameContract) {
-            showStatus('❌ Contracts not initialized');
-            return;
-        }
+      if (!gameContract) return;
 
-        rollBtn.disabled = true;
-        showStatus('🎲 Rolling cube...');
+      rollBtn.disabled = true;
+      showStatus('🎲 Rolling cube...');
 
-        try {
-            await animateCube();
-            
-            showStatus('🔄 Sending transaction...');
-            const tx = await gameContract.playGame({ gasLimit: 300000 });
-            
-            showStatus('⏳ Waiting for confirmation...');
-            await tx.wait();
-            
-            const result = await gameContract.getLastResult(userAddress);
-            const tokensWon = parseFloat(ethers.utils.formatUnits(result, 18));
-            
-            if (tokensWon > 0) {
-                showStatus(`🎉 You won ${tokensWon} BASE tokens!`);
-                createFireworks();
-            } else {
-                showStatus('😢 Better luck next time!');
-            }
-            
-            await loadBalance();
-            
-        } catch (error) {
-            console.error('Game error:', error);
-            if (error.code === 4001) {
-                showStatus('❌ Transaction cancelled');
-            } else {
-                showStatus('❌ Error: ' + error.message);
-            }
-        } finally {
-            rollBtn.disabled = false;
+      try {
+        await animateCube();
+        
+        showStatus('🔄 Playing game on-chain...');
+        const tx = await gameContract.playGame({ gasLimit: 200000 });
+        
+        showStatus('⏳ Waiting for confirmation...');
+        const receipt = await tx.wait();
+        
+        // Get the result
+        const result = await gameContract.getLastResult(userAddress);
+        const tokenDecimals = await tokenContract.decimals();
+        const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
+        
+        if (tokensWon > 0) {
+          showStatus(`🎉 You won ${tokensWon} BASE tokens!`);
+          createFireworks();
+        } else {
+          showStatus('😢 Better luck next time!');
         }
+        
+        await loadBalances();
+        
+      } catch (error) {
+        console.error('Game error:', error);
+        if (error.code === 4001) {
+          showStatus('❌ Transaction cancelled');
+        } else if (error.message.includes('Wait')) {
+          showStatus('⏳ ' + error.message);
+        } else {
+          showStatus('❌ Error: ' + error.message);
+        }
+      } finally {
+        rollBtn.disabled = false;
+      }
     });
 
     function animateCube() {
-        return new Promise((resolve) => {
-            const cube = document.getElementById('cube');
-            let rotation = 0;
-            
-            function animate() {
-                rotation += 20;
-                cube.style.transform = `rotateX(${rotation}deg) rotateY(${rotation}deg)`;
-                
-                if (rotation < 720) {
-                    requestAnimationFrame(animate);
-                } else {
-                    resolve();
-                }
-            }
-            animate();
-        });
+      return new Promise((resolve) => {
+        const cube = document.getElementById('cube');
+        let rotation = 0;
+        
+        function animate() {
+          rotation += 20;
+          cube.style.transform = `rotateX(${rotation}deg) rotateY(${rotation}deg)`;
+          
+          if (rotation < 720) {
+            requestAnimationFrame(animate);
+          } else {
+            resolve();
+          }
+        }
+        animate();
+      });
     }
 
     function createFireworks() {
-        const firework = document.getElementById('firework');
-        const colors = ['#0052FF', '#0070FF', '#FFFFFF'];
+      const firework = document.getElementById('firework');
+      const colors = ['#0052FF', '#0070FF', '#FFFFFF'];
+      
+      for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
         
-        for (let i = 0; i < 30; i++) {
-            const particle = document.createElement('div');
-            particle.classList.add('particle');
-            
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 50 + Math.random() * 100;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.left = '50%';
-            particle.style.top = '50%';
-            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            particle.style.setProperty('--tx', `${tx}px`);
-            particle.style.setProperty('--ty', `${ty}px`);
-            
-            firework.appendChild(particle);
-            setTimeout(() => particle.remove(), 1500);
-        }
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 50 + Math.random() * 100;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+        
+        particle.style.left = '50%';
+        particle.style.top = '50%';
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.setProperty('--tx', `${tx}px`);
+        particle.style.setProperty('--ty', `${ty}px`);
+        
+        firework.appendChild(particle);
+        setTimeout(() => particle.remove(), 1500);
+      }
     }
 
     function showStatus(message) {
-        let status = document.querySelector('.transaction-status');
-        if (!status) {
-            status = document.createElement('div');
-            status.className = 'transaction-status';
-            document.body.appendChild(status);
-        }
-        status.textContent = message;
-        
-        setTimeout(() => {
-            if (status.parentNode) status.remove();
-        }, 5000);
+      let status = document.querySelector('.transaction-status');
+      if (!status) {
+        status = document.createElement('div');
+        status.className = 'transaction-status';
+        document.body.appendChild(status);
+      }
+      status.textContent = message;
+      
+      setTimeout(() => {
+        if (status.parentNode) status.remove();
+      }, 5000);
+    }
+
+    function updateDebugInfo(message) {
+      debugInfo.textContent = `Debug: ${message}`;
     }
 
     // Initialize game
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeGame);
+      document.addEventListener('DOMContentLoaded', initializeGame);
     } else {
-        initializeGame();
+      initializeGame();
     }
   </script>
 </body>

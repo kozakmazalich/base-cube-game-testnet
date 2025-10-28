@@ -382,14 +382,14 @@
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
 
-    // Cube face mapping - FIXED: Ensure visual rewards match on-chain rewards
+    // Cube face mapping - ALL FACES SHOW LOSS SYMBOL INITIALLY
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - Lose
-      { symbol: '💎', reward: 3, position: { x: 90, y: 0 } },     // Top - 3 tokens
-      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Bottom - Lose
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Right - 1 token
-      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left - Lose
+      { symbol: '❌', reward: 0, position: { x: 0, y: 0 } },      // Front
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back
+      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } },     // Top
+      { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },    // Bottom
+      { symbol: '❌', reward: 0, position: { x: 0, y: 90 } },     // Right
+      { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }     // Left
     ];
 
     // Complete ABI for both contracts
@@ -634,54 +634,59 @@
       showStatus('🎲 Rolling cube...');
 
       try {
-        // STEP 1: Generate RANDOM cube result first
-        const randomFaceIndex = Math.floor(Math.random() * cubeFaces.length);
-        const selectedFace = cubeFaces[randomFaceIndex];
+        // STEP 1: First play the game on-chain to get the REAL result
+        showStatus('🔄 Playing game on-chain...');
+        const tx = await gameContract.playGame({ gasLimit: 200000 });
         
-        // STEP 2: Animate cube to show the random result
+        showStatus('⏳ Waiting for confirmation...');
+        const receipt = await tx.wait();
+        
+        // STEP 2: Get the ACTUAL on-chain result
+        const result = await gameContract.getLastResult(userAddress);
+        const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
+        
+        // STEP 3: Update cube faces based on ACTUAL result
+        updateCubeFaces(tokensWon);
+        
+        // STEP 4: Animate cube to show the CORRECT result
+        let selectedFace;
+        if (tokensWon === 5) {
+          selectedFace = { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } };
+        } else if (tokensWon === 3) {
+          selectedFace = { symbol: '💎', reward: 3, position: { x: 90, y: 0 } };
+        } else if (tokensWon === 1) {
+          selectedFace = { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } };
+        } else {
+          // Random losing face
+          const losingFaces = [
+            { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },
+            { symbol: '❌', reward: 0, position: { x: -90, y: 0 } },
+            { symbol: '❌', reward: 0, position: { x: 0, y: -90 } }
+          ];
+          selectedFace = losingFaces[Math.floor(Math.random() * losingFaces.length)];
+        }
+        
         await animateCubeToFace(selectedFace);
         
-        // STEP 3: Check if it's a winning face
-        if (selectedFace.reward > 0) {
-          // WINNING CASE: Send transaction to contract
-          showStatus(`🎯 Cube shows: ${selectedFace.symbol} - ${selectedFace.reward} tokens!`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        // STEP 5: Show appropriate message
+        if (tokensWon > 0) {
+          let rewardMessage = '';
           
-          showStatus('🔄 Claiming your win on-chain...');
-          const tx = await gameContract.playGame({ gasLimit: 200000 });
-          
-          showStatus('⏳ Waiting for confirmation...');
-          const receipt = await tx.wait();
-          
-          // Get the actual on-chain result
-          const result = await gameContract.getLastResult(userAddress);
-          const tokensWon = parseFloat(ethers.utils.formatUnits(result, tokenDecimals));
-          
-          // Verify the on-chain reward matches the visual reward
-          if (tokensWon === selectedFace.reward) {
-            let rewardMessage = '';
-            
-            if (tokensWon === 5) {
-              rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
-            } else if (tokensWon === 3) {
-              rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
-            } else if (tokensWon === 1) {
-              rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
-            }
-            
-            showStatus(rewardMessage);
-            createFireworks();
-          } else {
-            showStatus(`⚠️ Reward mismatch! Visual: ${selectedFace.reward}, On-chain: ${tokensWon}`);
+          if (tokensWon === 5) {
+            rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
+          } else if (tokensWon === 3) {
+            rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
+          } else if (tokensWon === 1) {
+            rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
           }
           
-          await loadBalances();
+          showStatus(rewardMessage);
+          createFireworks();
         } else {
-          // LOSING CASE: No transaction needed
-          showStatus(`❌ Cube shows: ${selectedFace.symbol} - Better luck next time!`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          showStatus('No tokens won - no transaction needed');
+          showStatus('❌ Better luck next time! No tokens won.');
         }
+        
+        await loadBalances();
         
       } catch (error) {
         console.error('Game error:', error);
@@ -697,6 +702,25 @@
         rollBtn.disabled = false;
       }
     });
+
+    function updateCubeFaces(tokensWon) {
+      const cube = document.getElementById('cube');
+      const faces = cube.getElementsByClassName('face');
+      
+      // Reset all faces to losing state
+      for (let face of faces) {
+        face.textContent = '❌';
+      }
+      
+      // Update winning face based on actual tokens won
+      if (tokensWon === 5) {
+        faces[0].textContent = '🏆'; // Front
+      } else if (tokensWon === 3) {
+        faces[2].textContent = '💎'; // Right
+      } else if (tokensWon === 1) {
+        faces[3].textContent = '⭐'; // Left
+      }
+    }
 
     function animateCubeToFace(face) {
       return new Promise((resolve) => {

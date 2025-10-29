@@ -408,7 +408,7 @@
   <script>
     // Contract addresses
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
-    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";  // Updated to new contract
+    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";  // Your deployed contract
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -424,17 +424,17 @@
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
 
-    // Cube face mapping - EXACTLY AS YOU SPECIFIED
+    // Cube face mapping - INDEXED TO MATCH CONTRACT RANDOM (0-5)
     const cubeFaces = [
-      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
-      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
-      { symbol: '💎', reward: 3, position: { x: 0, y: 270 } },    // Right - 3 tokens WIN (changed -90 to 270 for positive rotation)
-      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
-      { symbol: '❌', reward: 0, position: { x: 270, y: 0 } },    // Top - 0 tokens LOSE (changed -90 to 270)
-      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // 0: Front - 5 tokens WIN
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // 1: Back - 0 tokens LOSE
+      { symbol: '💎', reward: 3, position: { x: 0, y: 270 } },    // 2: Right - 3 tokens WIN
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // 3: Left - 1 token WIN
+      { symbol: '❌', reward: 0, position: { x: 270, y: 0 } },    // 4: Top - 0 tokens LOSE
+      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // 5: Bottom - 0 tokens LOSE
     ];
 
-    // Complete ABI for both contracts
+    // Complete ABI for the updated contract
     const tokenAbi = [
       "function balanceOf(address) view returns (uint256)",
       "function decimals() view returns (uint8)",
@@ -444,13 +444,13 @@
     ];
 
     const gameAbi = [
-      "function playGame() returns (uint256)",
+      "function playGame() returns (uint256, uint256)",
       "function getLastResult(address) view returns (uint256)",
       "function playerBalance(address) view returns (uint256)",
       "function claimRewards()",
       "function token() view returns (address)",
-      "event GamePlayed(address indexed player, uint256 reward)"
-    ];  // Trimmed unused functions like players() and rewards() to match new contract
+      "event GamePlayed(address indexed player, uint256 reward, uint256 faceIndex)"
+    ];
 
     // Game state
     const gameState = {
@@ -687,13 +687,15 @@
         showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
-        // STEP 2: Get the reward from the event (more reliable than view call)
+        // STEP 2: Get the reward and faceIndex from the event
         let reward = ethers.BigNumber.from(0);
+        let faceIndex = 0;
         for (const log of receipt.logs) {
           try {
             const parsedLog = gameContract.interface.parseLog(log);
             if (parsedLog.name === 'GamePlayed' && parsedLog.args.player.toLowerCase() === userAddress.toLowerCase()) {
               reward = parsedLog.args.reward;
+              faceIndex = Number(parsedLog.args.faceIndex);
               break;
             }
           } catch (e) {
@@ -701,60 +703,32 @@
           }
         }
         
-        if (reward.eq(0)) {
+        if (reward.eq(0) && faceIndex === 0) {
           // Fallback to view call if event not found (unlikely)
           reward = await gameContract.getLastResult(userAddress);
+          // No fallback for faceIndex, assume 0 or handle error
         }
         
         const tokensWon = parseFloat(ethers.utils.formatUnits(reward, tokenDecimals));
         
-        // STEP 3: Determine symbol based on tokens won
-        let tokensWon = parseFloat(ethers.utils.formatUnits(reward, tokenDecimals));
-let selectedFace;
-
-const rewardToFaceMap = {
-    5: 0, // 🏆 is index 0 (Front)
-    3: 2, // 💎 is index 2 (Right)
-    1: 3, // ⭐ is index 3 (Left)
-    0: [1, 4, 5] // ❌ are indices 1 (Back), 4 (Top), 5 (Bottom)
-};
-
-if (tokensWon in rewardToFaceMap) {
-    if (tokensWon === 0) {
-        // Randomly pick one of the '❌' faces (1, 4, or 5)
-        const loseIndices = rewardToFaceMap[0];
-        const randomIndex = loseIndices[Math.floor(Math.random() * loseIndices.length)];
-        selectedFace = cubeFaces[randomIndex];
-    } else {
-        // Direct match for win faces (1, 3, 5)
-        selectedFace = cubeFaces[rewardToFaceMap[tokensWon]];
-    }
-} else {
-    // Fallback if unexpected reward (shouldn't happen with this contract)
-    selectedFace = cubeFaces[Math.floor(Math.random() * cubeFaces.length)];
-}
-
-// STEP 5: Animate to selected face (starts here now)
-await animateCubeToFace(selectedFace);
+        // STEP 3: Select the exact face based on contract's faceIndex
+        let selectedFace = cubeFaces[faceIndex];
         
-        // STEP 6: Show result message
+        if (!selectedFace) {
+          // Fallback if invalid index
+          selectedFace = cubeFaces[0];
+        }
+        
+        // STEP 4: Animate to the contract-determined face
+        await animateCubeToFace(selectedFace);
+        
+        // STEP 5: Show result message based on tokensWon (which matches the face)
         if (tokensWon > 0) {
-          let rewardMessage = '';
-          
-          if (tokensWon === 5) {
-            rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
-          } else if (tokensWon === 3) {
-            rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
-          } else if (tokensWon === 1) {
-            rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
-          } else {
-            rewardMessage = `🎉 You won ${tokensWon} $BASE tokens!`;
-          }
-          
+          let rewardMessage = `🎉 You won ${tokensWon} $BASE tokens! (${selectedFace.symbol})`;
           showStatus(rewardMessage);
           createFireworks();
         } else {
-          showStatus('❌ Better luck next time! No tokens won.');
+          showStatus('❌ Better luck next time! No tokens won. (' + selectedFace.symbol + ')');
         }
         
         await loadBalances();

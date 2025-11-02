@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Base Cube Game - Win $BASE</title>
-  
+  <title>Base Casino Cube - Win $BASE</title>
   <style>
     * {
       margin: 0;
@@ -54,12 +53,13 @@
     }
 
     .pixel-bg.jackpot-active .pixel {
-      animation: jackpotBlink 0.5s infinite alternate;
+      animation: jackpotBlink 0.3s infinite alternate;
     }
 
     @keyframes jackpotBlink {
-      0% { background: rgba(0, 82, 255, 0.05); }
-      100% { background: rgba(255, 215, 0, 0.8); }
+      0% { background: rgba(255, 215, 0, 0.1); }
+      50% { background: rgba(255, 0, 0, 0.8); }
+      100% { background: rgba(255, 215, 0, 0.9); }
     }
 
     .scene {
@@ -88,7 +88,7 @@
       font-size: 60px;
       font-weight: 700;
       color: white;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
       box-shadow: 0 0 25px rgba(0, 82, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15);
       background: linear-gradient(135deg, rgba(0, 82, 255, 0.9) 0%, rgba(0, 112, 255, 0.9) 100%);
       backdrop-filter: blur(8px);
@@ -103,11 +103,11 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-image: url('baselogo.png');
-      background-size: 70%;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMDA1MkZGIi8+CjxwYXRoIGQ9Ik04MCA2MEg2MFY4MEg4MFY2MFpNMTAwIDYwSDEyMFY4MEgxMDBWNjBaTTE0MCA2MEgxNjBWODBIMTQwVjYwWk04MCAxMDBINjBWMTIwSDgwVjEwMFpNMTAwIDEwMEgxMjBWMTIwSDEwMFYxMDBaTTE0MCAxMDBIMTYwVjEyMEgxNDBWMTIwWiIgZmlsbD0id2hpdGUiLz4KPHN2Zz4K');
+      background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      opacity: 0.7;
+      opacity: 0.3;
       z-index: -1;
     }
 
@@ -117,34 +117,20 @@
 
     .face.jackpot-face {
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 140, 0, 0.9) 100%);
-      animation: jackpotFaceGlow 2s infinite alternate;
+      animation: jackpotFaceGlow 1s infinite alternate;
     }
 
     @keyframes jackpotFaceGlow {
-      0% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15); }
-      100% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.9), 0 0 80px rgba(255, 140, 0, 0.8), inset 0 0 60px rgba(255, 255, 255, 0.4); }
+      0% { 
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 
+                    inset 0 0 40px rgba(255, 255, 255, 0.15); 
+      }
+      100% { 
+        box-shadow: 0 0 50px rgba(255, 215, 0, 0.9), 
+                    0 0 80px rgba(255, 140, 0, 0.8), 
+                    inset 0 0 60px rgba(255, 255, 255, 0.4); 
+      }
     }
-
-    .rib {
-      position: absolute;
-      background: rgba(255, 255, 255, 0.8);
-      z-index: 10;
-    }
-
-    .rib.horizontal {
-      width: 100%;
-      height: 2px;
-    }
-
-    .rib.vertical {
-      width: 2px;
-      height: 100%;
-    }
-
-    .rib.top { top: 0; }
-    .rib.bottom { bottom: 0; }
-    .rib.left { left: 0; }
-    .rib.right { right: 0; }
 
     .front  { transform: rotateY(0deg) translateZ(100px); }
     .back   { transform: rotateY(180deg) translateZ(100px); }
@@ -405,13 +391,60 @@
       100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(450deg); opacity: 0; }
     }
 
-    .salute {
+    .casino-light {
       position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
       pointer-events: none;
-      z-index: 100;
+      z-index: 5;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .casino-light.active {
+      opacity: 0.7;
+    }
+
+    .casino-light::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255,215,0,0.3) 0%, transparent 70%);
+      animation: casinoLightRotate 10s linear infinite;
+    }
+
+    @keyframes casinoLightRotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .jackpot-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: 900;
+      color: #FFD700;
+      text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,140,0,0.6);
+      z-index: 60;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .jackpot-text.active {
+      opacity: 1;
+      animation: jackpotTextPulse 1s infinite alternate;
+    }
+
+    @keyframes jackpotTextPulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      100% { transform: translate(-50%, -50%) scale(1.1); }
     }
 
     @media (max-width: 768px) {
@@ -463,6 +496,9 @@
       .pixel {
         animation-duration: 20s;
       }
+      .jackpot-text {
+        font-size: 32px;
+      }
     }
   </style>
 </head>
@@ -479,17 +515,17 @@
   <div class="rewards-table">
     <h3>Rewards</h3>
     <div class="reward-item">
-      <span class="reward-symbol"></span>
+      <span class="reward-symbol">🎲</span>
       <span class="reward-text">1 base token</span>
       <span class="reward-tokens">+1</span>
     </div>
     <div class="reward-item">
-      <span class="reward-symbol"></span>
+      <span class="reward-symbol">💰</span>
       <span class="reward-text">3 base tokens</span>
       <span class="reward-tokens">+3</span>
     </div>
     <div class="reward-item">
-      <span class="reward-symbol"></span>
+      <span class="reward-symbol">🎯</span>
       <span class="reward-text">5 base tokens</span>
       <span class="reward-tokens">+5</span>
     </div>
@@ -498,18 +534,12 @@
   <div class="game-container">
     <div class="scene">
       <div class="cube" id="cube">
-        <div class="face front"></div>
-        <div class="face back"></div>
-        <div class="face right"></div>
-        <div class="face left"></div>
-        <div class="face top"></div>
-        <div class="face bottom"></div>
-        
-        <!-- Cube ribs -->
-        <div class="rib horizontal top"></div>
-        <div class="rib horizontal bottom"></div>
-        <div class="rib vertical left"></div>
-        <div class="rib vertical right"></div>
+        <div class="face front">🎲</div>
+        <div class="face back">💸</div>
+        <div class="face right">💰</div>
+        <div class="face left">🎯</div>
+        <div class="face top">💎</div>
+        <div class="face bottom">🎰</div>
       </div>
     </div>
 
@@ -520,16 +550,17 @@
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
   <div class="jackpot-cubes" id="jackpotCubes"></div>
+  <div class="casino-light" id="casinoLight"></div>
+  <div class="jackpot-text" id="jackpotText">JACKPOT!</div>
 
   <div class="debug-info" id="debugInfo">
     Contract Status: Checking...
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     // Contract addresses
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
-    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";  // Updated to new contract
+    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -543,19 +574,21 @@
     const debugInfo = document.getElementById('debugInfo');
     const pixelBg = document.getElementById('pixelBg');
     const jackpotCubes = document.getElementById('jackpotCubes');
+    const casinoLight = document.getElementById('casinoLight');
+    const jackpotText = document.getElementById('jackpotText');
 
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
     let jackpotActive = false;
 
-    // Cube face mapping - EXACTLY AS YOU SPECIFIED
+    // Cube face mapping with emojis
     const cubeFaces = [
-      { symbol: '', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
-      { symbol: '', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
-      { symbol: '', reward: 3, position: { x: 0, y: 270 } },    // Right - 3 tokens WIN (changed -90 to 270 for positive rotation)
-      { symbol: '', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
-      { symbol: '', reward: 0, position: { x: 270, y: 0 } },    // Top - 0 tokens LOSE (changed -90 to 270)
-      { symbol: '', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
+      { symbol: '🎯', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
+      { symbol: '💸', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
+      { symbol: '💰', reward: 3, position: { x: 0, y: 270 } },    // Right - 3 tokens WIN
+      { symbol: '🎲', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
+      { symbol: '💎', reward: 0, position: { x: 270, y: 0 } },    // Top - 0 tokens LOSE
+      { symbol: '🎰', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
     ];
 
     // Complete ABI for both contracts
@@ -574,7 +607,7 @@
       "function claimRewards()",
       "function token() view returns (address)",
       "event GamePlayed(address indexed player, uint256 reward)"
-    ];  // Trimmed unused functions like players() and rewards() to match new contract
+    ];
 
     // Game state
     const gameState = {
@@ -836,16 +869,16 @@
         let actualReward = 0;
         
         if (tokensWon === 5) {
-          actualSymbol = '';
+          actualSymbol = '🎯';
           actualReward = 5;
         } else if (tokensWon === 3) {
-          actualSymbol = '';
+          actualSymbol = '💰';
           actualReward = 3;
         } else if (tokensWon === 1) {
-          actualSymbol = '';
+          actualSymbol = '🎲';
           actualReward = 1;
         } else {
-          actualSymbol = '';
+          actualSymbol = '💸';
           actualReward = 0;
         }
         
@@ -875,15 +908,12 @@
           } else if (tokensWon === 3) {
             rewardMessage = ` Great! You won ${tokensWon} $BASE tokens!`;
             createFireworks();
-            createSalutes(15); // More salutes for bigger wins
           } else if (tokensWon === 1) {
             rewardMessage = ` Nice! You won ${tokensWon} $BASE token!`;
             createFireworks();
-            createSalutes(8);
           } else {
             rewardMessage = ` You won ${tokensWon} $BASE tokens!`;
             createFireworks();
-            createSalutes(5);
           }
           
           showStatus(rewardMessage);
@@ -1009,46 +1039,17 @@
       }
     }
 
-    function createSalutes(count) {
-      const colors = ['#FFD700', '#FFA500', '#FFFFFF', '#0052FF'];
-      
-      for (let i = 0; i < count; i++) {
-        const salute = document.createElement('div');
-        salute.classList.add('salute');
-        
-        const size = 5 + Math.random() * 10;
-        salute.style.width = `${size}px`;
-        salute.style.height = `${size}px`;
-        
-        const startX = 50 + (Math.random() - 0.5) * 80;
-        const startY = 50 + (Math.random() - 0.5) * 80;
-        
-        salute.style.left = `${startX}%`;
-        salute.style.top = `${startY}%`;
-        salute.style.background = colors[Math.floor(Math.random() * colors.length)];
-        
-        document.body.appendChild(salute);
-        
-        // Animate salute
-        const animation = salute.animate([
-          { transform: 'scale(0)', opacity: 1 },
-          { transform: 'scale(1.5)', opacity: 0.8 },
-          { transform: 'scale(0.5)', opacity: 0.5 },
-          { transform: 'scale(1.2)', opacity: 0 }
-        ], {
-          duration: 1000 + Math.random() * 1000,
-          easing: 'cubic-bezier(0.215, 0.610, 0.355, 1)'
-        });
-        
-        animation.onfinish = () => salute.remove();
-      }
-    }
-
     function activateJackpot(tokensWon) {
       jackpotActive = true;
       
       // Activate blinking background
       pixelBg.classList.add('jackpot-active');
+      
+      // Activate casino lights
+      casinoLight.classList.add('active');
+      
+      // Show jackpot text
+      jackpotText.classList.add('active');
       
       // Create jackpot cubes with multipliers
       const multipliers = ['2x', '5x', '10x', '20x'];
@@ -1057,13 +1058,14 @@
         createJackpotCube(multiplier, index * 800);
       });
       
-      // Create more salutes for jackpot
-      createSalutes(30);
+      // Create fireworks for jackpot
       createFireworks();
       
       // Deactivate jackpot after 5 seconds
       setTimeout(() => {
         pixelBg.classList.remove('jackpot-active');
+        casinoLight.classList.remove('active');
+        jackpotText.classList.remove('active');
         jackpotActive = false;
       }, 5000);
     }

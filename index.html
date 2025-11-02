@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Base Casino Cube - Win $BASE</title>
+  <title>Base Cube Game - Win $BASE</title>
+  
   <style>
     * {
       margin: 0;
@@ -52,16 +53,6 @@
       100% { background: rgba(0, 82, 255, 0.05); }
     }
 
-    .pixel-bg.jackpot-active .pixel {
-      animation: jackpotBlink 0.3s infinite alternate;
-    }
-
-    @keyframes jackpotBlink {
-      0% { background: rgba(255, 215, 0, 0.1); }
-      50% { background: rgba(255, 0, 0, 0.8); }
-      100% { background: rgba(255, 215, 0, 0.9); }
-    }
-
     .scene {
       width: 200px;
       height: 200px;
@@ -88,48 +79,11 @@
       font-size: 60px;
       font-weight: 700;
       color: white;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
       box-shadow: 0 0 25px rgba(0, 82, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.15);
       background: linear-gradient(135deg, rgba(0, 82, 255, 0.9) 0%, rgba(0, 112, 255, 0.9) 100%);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      overflow: hidden;
-    }
-
-    .face::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMDA1MkZGIi8+CjxwYXRoIGQ9Ik04MCA2MEg2MFY4MEg4MFY2MFpNMTAwIDYwSDEyMFY4MEgxMDBWNjBaTTE0MCA2MEgxNjBWODBIMTQwVjYwWk04MCAxMDBINjBWMTIwSDgwVjEwMFpNMTAwIDEwMEgxMjBWMTIwSDEwMFYxMDBaTTE0MCAxMDBIMTYwVjEyMEgxNDBWMTIwWiIgZmlsbD0id2hpdGUiLz4KPHN2Zz4K');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0.3;
-      z-index: -1;
-    }
-
-    .face.win-face {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 165, 0, 0.9) 100%);
-    }
-
-    .face.jackpot-face {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 140, 0, 0.9) 100%);
-      animation: jackpotFaceGlow 1s infinite alternate;
-    }
-
-    @keyframes jackpotFaceGlow {
-      0% { 
-        box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 
-                    inset 0 0 40px rgba(255, 255, 255, 0.15); 
-      }
-      100% { 
-        box-shadow: 0 0 50px rgba(255, 215, 0, 0.9), 
-                    0 0 80px rgba(255, 140, 0, 0.8), 
-                    inset 0 0 60px rgba(255, 255, 255, 0.4); 
-      }
     }
 
     .front  { transform: rotateY(0deg) translateZ(100px); }
@@ -345,108 +299,6 @@
       max-width: 300px;
     }
 
-    .jackpot-cubes {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 50;
-      pointer-events: none;
-    }
-
-    .jackpot-cube {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      transform-style: preserve-3d;
-      animation: jackpotCubeFloat 3s ease-in-out forwards;
-    }
-
-    .jackpot-cube-face {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 165, 0, 0.9) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-      font-size: 14px;
-      color: #000;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
-    }
-
-    .jackpot-cube .front  { transform: rotateY(0deg) translateZ(30px); }
-    .jackpot-cube .back   { transform: rotateY(180deg) translateZ(30px); }
-    .jackpot-cube .right  { transform: rotateY(90deg) translateZ(30px); }
-    .jackpot-cube .left   { transform: rotateY(-90deg) translateZ(30px); }
-    .jackpot-cube .top    { transform: rotateX(90deg) translateZ(30px); }
-    .jackpot-cube .bottom { transform: rotateX(-90deg) translateZ(30px); }
-
-    @keyframes jackpotCubeFloat {
-      0% { transform: translate(0, 0) scale(0) rotate(0deg); opacity: 0; }
-      20% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(180deg); opacity: 1; }
-      80% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(360deg); opacity: 1; }
-      100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(450deg); opacity: 0; }
-    }
-
-    .casino-light {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0;
-      transition: opacity 0.5s;
-    }
-
-    .casino-light.active {
-      opacity: 0.7;
-    }
-
-    .casino-light::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(circle at 50% 50%, rgba(255,215,0,0.3) 0%, transparent 70%);
-      animation: casinoLightRotate 10s linear infinite;
-    }
-
-    @keyframes casinoLightRotate {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .jackpot-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 48px;
-      font-weight: 900;
-      color: #FFD700;
-      text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,140,0,0.6);
-      z-index: 60;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .jackpot-text.active {
-      opacity: 1;
-      animation: jackpotTextPulse 1s infinite alternate;
-    }
-
-    @keyframes jackpotTextPulse {
-      0% { transform: translate(-50%, -50%) scale(1); }
-      100% { transform: translate(-50%, -50%) scale(1.1); }
-    }
-
     @media (max-width: 768px) {
       body { 
         flex-direction: column; 
@@ -496,9 +348,6 @@
       .pixel {
         animation-duration: 20s;
       }
-      .jackpot-text {
-        font-size: 32px;
-      }
     }
   </style>
 </head>
@@ -515,17 +364,17 @@
   <div class="rewards-table">
     <h3>Rewards</h3>
     <div class="reward-item">
-      <span class="reward-symbol">🎲</span>
+      <span class="reward-symbol">⭐</span>
       <span class="reward-text">1 base token</span>
       <span class="reward-tokens">+1</span>
     </div>
     <div class="reward-item">
-      <span class="reward-symbol">💰</span>
+      <span class="reward-symbol">💎</span>
       <span class="reward-text">3 base tokens</span>
       <span class="reward-tokens">+3</span>
     </div>
     <div class="reward-item">
-      <span class="reward-symbol">🎯</span>
+      <span class="reward-symbol">🏆</span>
       <span class="reward-text">5 base tokens</span>
       <span class="reward-tokens">+5</span>
     </div>
@@ -534,12 +383,12 @@
   <div class="game-container">
     <div class="scene">
       <div class="cube" id="cube">
-        <div class="face front">🎲</div>
-        <div class="face back">💸</div>
-        <div class="face right">💰</div>
-        <div class="face left">🎯</div>
-        <div class="face top">💎</div>
-        <div class="face bottom">🎰</div>
+        <div class="face front">🏆</div>
+        <div class="face back">❌</div>
+        <div class="face right">💎</div>
+        <div class="face left">⭐</div>
+        <div class="face top">❌</div>
+        <div class="face bottom">❌</div>
       </div>
     </div>
 
@@ -549,18 +398,17 @@
 
   <div class="pixel-bg" id="pixelBg"></div>
   <div class="firework" id="firework"></div>
-  <div class="jackpot-cubes" id="jackpotCubes"></div>
-  <div class="casino-light" id="casinoLight"></div>
-  <div class="jackpot-text" id="jackpotText">JACKPOT!</div>
 
   <div class="debug-info" id="debugInfo">
     Contract Status: Checking...
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  
   <script>
     // Contract addresses
     const TOKEN_CONTRACT_ADDRESS = "0x5183cDE5c8AE1ff27272a7f6d3734355FA81FBD2";
-    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";
+    const GAME_CONTRACT_ADDRESS = "0xc7757C3Fba8CAd451c0ce25283e5851ba2A7d0A3";  // Updated to new contract
     
     const BASE_SEPOLIA_CHAIN_ID = '0x14a34';
     
@@ -572,23 +420,18 @@
     const connectBtn = document.getElementById('connectBtn');
     const claimBtn = document.getElementById('claimBtn');
     const debugInfo = document.getElementById('debugInfo');
-    const pixelBg = document.getElementById('pixelBg');
-    const jackpotCubes = document.getElementById('jackpotCubes');
-    const casinoLight = document.getElementById('casinoLight');
-    const jackpotText = document.getElementById('jackpotText');
 
     let provider, signer, tokenContract, gameContract, userAddress;
     let tokenDecimals = 18;
-    let jackpotActive = false;
 
-    // Cube face mapping with emojis
+    // Cube face mapping - EXACTLY AS YOU SPECIFIED
     const cubeFaces = [
-      { symbol: '🎯', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
-      { symbol: '💸', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
-      { symbol: '💰', reward: 3, position: { x: 0, y: 270 } },    // Right - 3 tokens WIN
-      { symbol: '🎲', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
-      { symbol: '💎', reward: 0, position: { x: 270, y: 0 } },    // Top - 0 tokens LOSE
-      { symbol: '🎰', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
+      { symbol: '🏆', reward: 5, position: { x: 0, y: 0 } },      // Front - 5 tokens WIN
+      { symbol: '❌', reward: 0, position: { x: 0, y: 180 } },    // Back - 0 tokens LOSE
+      { symbol: '💎', reward: 3, position: { x: 0, y: 270 } },    // Right - 3 tokens WIN (changed -90 to 270 for positive rotation)
+      { symbol: '⭐', reward: 1, position: { x: 0, y: 90 } },     // Left - 1 token WIN
+      { symbol: '❌', reward: 0, position: { x: 270, y: 0 } },    // Top - 0 tokens LOSE (changed -90 to 270)
+      { symbol: '❌', reward: 0, position: { x: 90, y: 0 } }      // Bottom - 0 tokens LOSE
     ];
 
     // Complete ABI for both contracts
@@ -607,7 +450,7 @@
       "function claimRewards()",
       "function token() view returns (address)",
       "event GamePlayed(address indexed player, uint256 reward)"
-    ];
+    ];  // Trimmed unused functions like players() and rewards() to match new contract
 
     // Game state
     const gameState = {
@@ -633,6 +476,7 @@
     }
 
     function setupGameVisuals() {
+      const pixelBg = document.getElementById('pixelBg');
       const isMobile = window.matchMedia("(max-width: 768px)").matches;
       const gridSize = isMobile ? 20 : 40;
       const pixelCount = gridSize * gridSize;
@@ -701,7 +545,7 @@
       
       await loadBalances();
       
-      showStatus(' Wallet connected! Ready to play.');
+      showStatus('✅ Wallet connected! Ready to play.');
       updateDebugInfo('Contracts connected successfully');
       
       window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -723,7 +567,7 @@
         updateDebugInfo(`Game contract has ${gameBalanceFormatted} tokens`);
         
         if (gameBalanceFormatted < 10) {
-          showStatus(' Game contract low on tokens');
+          showStatus('⚠️ Game contract low on tokens');
         }
         
       } catch (error) {
@@ -818,7 +662,7 @@
         const receipt = await tx.wait();
         console.log('Claim successful:', receipt);
         
-        showStatus(' Rewards claimed successfully!');
+        showStatus('🎉 Rewards claimed successfully!');
         await loadBalances();
         
       } catch (error) {
@@ -833,14 +677,14 @@
 
       gameState.isRolling = true;
       rollBtn.disabled = true;
-      showStatus(' Rolling cube...');
+      showStatus('🎲 Rolling cube...');
 
       try {
         // STEP 1: Play the game on-chain
-        showStatus(' Playing game on-chain...');
+        showStatus('🔄 Playing game on-chain...');
         const tx = await gameContract.playGame({ gasLimit: 200000 });
         
-        showStatus(' Waiting for confirmation...');
+        showStatus('⏳ Waiting for confirmation...');
         const receipt = await tx.wait();
         
         // STEP 2: Get the reward from the event (more reliable than view call)
@@ -865,20 +709,20 @@
         const tokensWon = parseFloat(ethers.utils.formatUnits(reward, tokenDecimals));
         
         // STEP 3: Determine symbol based on tokens won
-        let actualSymbol = '';
+        let actualSymbol = '❌';
         let actualReward = 0;
         
         if (tokensWon === 5) {
-          actualSymbol = '🎯';
+          actualSymbol = '🏆';
           actualReward = 5;
         } else if (tokensWon === 3) {
-          actualSymbol = '💰';
+          actualSymbol = '💎';
           actualReward = 3;
         } else if (tokensWon === 1) {
-          actualSymbol = '🎲';
+          actualSymbol = '⭐';
           actualReward = 1;
         } else {
-          actualSymbol = '💸';
+          actualSymbol = '❌';
           actualReward = 0;
         }
         
@@ -902,23 +746,19 @@
           let rewardMessage = '';
           
           if (tokensWon === 5) {
-            rewardMessage = ` JACKPOT! You won ${tokensWon} $BASE tokens!`;
-            // Activate jackpot effects
-            activateJackpot(tokensWon);
+            rewardMessage = `🏆 JACKPOT! You won ${tokensWon} $BASE tokens!`;
           } else if (tokensWon === 3) {
-            rewardMessage = ` Great! You won ${tokensWon} $BASE tokens!`;
-            createFireworks();
+            rewardMessage = `💎 Great! You won ${tokensWon} $BASE tokens!`;
           } else if (tokensWon === 1) {
-            rewardMessage = ` Nice! You won ${tokensWon} $BASE token!`;
-            createFireworks();
+            rewardMessage = `⭐ Nice! You won ${tokensWon} $BASE token!`;
           } else {
-            rewardMessage = ` You won ${tokensWon} $BASE tokens!`;
-            createFireworks();
+            rewardMessage = `🎉 You won ${tokensWon} $BASE tokens!`;
           }
           
           showStatus(rewardMessage);
+          createFireworks();
         } else {
-          showStatus(' Better luck next time! No tokens won.');
+          showStatus('❌ Better luck next time! No tokens won.');
         }
         
         await loadBalances();
@@ -926,11 +766,11 @@
       } catch (error) {
         console.error('Game error:', error);
         if (error.code === 4001) {
-          showStatus(' Transaction cancelled');
+          showStatus('❌ Transaction cancelled');
         } else if (error.message.includes('Wait')) {
-          showStatus(' ' + error.message);
+          showStatus('⏳ ' + error.message);
         } else {
-          showStatus(' Error: ' + error.message);
+          showStatus('❌ Error: ' + error.message);
         }
       } finally {
         gameState.isRolling = false;
@@ -1037,68 +877,6 @@
         firework.appendChild(particle);
         setTimeout(() => particle.remove(), 1500);
       }
-    }
-
-    function activateJackpot(tokensWon) {
-      jackpotActive = true;
-      
-      // Activate blinking background
-      pixelBg.classList.add('jackpot-active');
-      
-      // Activate casino lights
-      casinoLight.classList.add('active');
-      
-      // Show jackpot text
-      jackpotText.classList.add('active');
-      
-      // Create jackpot cubes with multipliers
-      const multipliers = ['2x', '5x', '10x', '20x'];
-      
-      multipliers.forEach((multiplier, index) => {
-        createJackpotCube(multiplier, index * 800);
-      });
-      
-      // Create fireworks for jackpot
-      createFireworks();
-      
-      // Deactivate jackpot after 5 seconds
-      setTimeout(() => {
-        pixelBg.classList.remove('jackpot-active');
-        casinoLight.classList.remove('active');
-        jackpotText.classList.remove('active');
-        jackpotActive = false;
-      }, 5000);
-    }
-
-    function createJackpotCube(multiplier, delay) {
-      setTimeout(() => {
-        const cube = document.createElement('div');
-        cube.classList.add('jackpot-cube');
-        
-        // Random position
-        const tx = (Math.random() - 0.5) * 300;
-        const ty = (Math.random() - 0.5) * 300;
-        cube.style.setProperty('--tx', `${tx}px`);
-        cube.style.setProperty('--ty', `${ty}px`);
-        
-        // Create cube faces
-        const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
-        faces.forEach(face => {
-          const faceEl = document.createElement('div');
-          faceEl.classList.add('jackpot-cube-face', face);
-          if (face === 'front') {
-            faceEl.textContent = multiplier;
-          }
-          cube.appendChild(faceEl);
-        });
-        
-        jackpotCubes.appendChild(cube);
-        
-        // Remove cube after animation
-        setTimeout(() => {
-          cube.remove();
-        }, 3000);
-      }, delay);
     }
 
     function showStatus(message) {
